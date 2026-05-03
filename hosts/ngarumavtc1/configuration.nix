@@ -20,7 +20,7 @@
     prefixLength = 24;
   }];
   networking.defaultGateway = "172.20.0.1";
-  networking.nameservers = [ "1.1.1.3" "1.0.0.3" ];
+  networking.nameservers = [ "172.20.0.1" ];
 
   # Lokalisierung
   time.timeZone = "Africa/Dar_es_Salaam";
