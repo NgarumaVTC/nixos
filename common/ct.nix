@@ -4,7 +4,9 @@
   boot.isContainer = true;
   system.stateVersion = "26.05";
 
-  # SSH-Zugang für alle Container
+  # SSH & Web-Ports öffnen
+  networking.firewall.allowedTCPPorts = [ 22 80 443 ];
+
   services.openssh = {
     enable = true;
     settings = {

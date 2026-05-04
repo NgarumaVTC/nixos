@@ -6,6 +6,8 @@
     ./hardware-configuration.nix
     ../../common/default.nix
     ./containers/mgmt1.nix
+    ./containers/web01.nix
+    ./containers/ct90051.nix
   ];
 
   system.stateVersion = "26.05";
@@ -22,6 +24,7 @@
 
   # 2. Netzwerk (Routing & Bridge)
   networking = {
+    firewall.enable = false;
     hostName = "ngarumavtc1";
     hostId = "0346c59b";
     useDHCP = false;
@@ -33,6 +36,11 @@
       address = "172.20.0.10";
       prefixLength = 24;
     }];
+    vlans."vlan90" = {
+      interface = "enp2s0";
+      id = 90;
+    };
+    bridges."br90".interfaces = [ "vlan90" ];
   };
 
   # 3. ZFS Dateisysteme (Storage-Ebene)

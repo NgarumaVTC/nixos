@@ -34,6 +34,12 @@
   };
 
   environment.systemPackages = with pkgs; [
-    vim git htop tmux zsh
+    fzf
+    git 
+    htop 
+    ripgrep
+    tmux 
+    vim 
+    zsh 
   ];
 }
