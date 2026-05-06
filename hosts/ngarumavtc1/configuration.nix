@@ -5,9 +5,12 @@
   imports = [
     ./hardware-configuration.nix
     ../../common/default.nix
+    ./containers/base.nix
     ./containers/mgmt1.nix
     ./containers/web01.nix
+    ./containers/ctauth.nix
     ./containers/ct90051.nix
+    # ./containers/ct90052.nix
   ];
 
   system.stateVersion = "26.05";

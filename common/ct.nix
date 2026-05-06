@@ -1,10 +1,8 @@
 { config, pkgs, ... }:
-
 {
   boot.isContainer = true;
   system.stateVersion = "26.05";
 
-  # SSH & Web-Ports öffnen
   networking.firewall.allowedTCPPorts = [ 22 80 443 ];
 
   services.openssh = {

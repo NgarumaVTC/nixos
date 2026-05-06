@@ -32,11 +32,23 @@
       mac = "02:00:00:00:00:21"; # Muster generiert
       vlan = 1;
     };
+    ctauth = { 
+      ip = "172.20.90.12";
+      mac = "02:00:00:00:90:12"; # Muster generiert
+      vlan = 90;
+    };
 
     # --- VIRTUELLE CONTAINER (Subnetz 90 - Students) ---
     ct90051 = {
       ip = "172.20.90.51";
       mac = "02:00:00:00:90:51"; # Muster generiert
+      vlan = 90;
+    };
+
+    # --- VIRTUELLE CONTAINER (Subnetz 90 - Students) ---
+    ct90052 = {
+      ip = "172.20.90.52";
+      mac = "02:00:00:00:90:52"; # Muster generiert
       vlan = 90;
     };
 
