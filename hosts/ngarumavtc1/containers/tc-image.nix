@@ -72,29 +72,26 @@ in
         program = let
           kioskScript = pkgs.writeShellScriptBin "start-kiosk" ''
             while true; do
-              # 1. Lokaler Wayland-Dialog für den Benutzernamen
+              # Fehlerkanal (2>) ins Nichts umleiten, damit die Variable klinisch rein bleibt
               USER=$(${pkgs.zenity}/bin/zenity --entry \
                 --title="Ngaruma VTC" \
                 --text="Benutzername (z. B. student10013):" \
                 --ok-label="Weiter" \
-                --cancel-label="Neu starten")
+                --cancel-label="Neu starten" 2>/dev/null)
               
-              # Bei Abbruch oder leerer Eingabe -> Schleife von vorn
               if [ -z "$USER" ]; then continue; fi
 
-              # 2. Lokaler Dialog für das Passwort
               PASS=$(${pkgs.zenity}/bin/zenity --password \
                 --title="Ngaruma VTC" \
                 --text="Passwort für $USER:" \
                 --ok-label="Anmelden" \
-                --cancel-label="Zurück")
+                --cancel-label="Zurück" 2>/dev/null)
               
               if [ -z "$PASS" ]; then continue; fi
 
-              # 3. Verbindungsaufbau im Hintergrund
-              ${pkgs.freerdp}/bin/xfreerdp /v:${ctConfig.ip} /f /cert:ignore /u:"$USER" /p:"$PASS"
+              # Der exakt gleiche Aufruf, der bei dir vorhin mit harten Strings funktioniert hat
+              ${pkgs.freerdp}/bin/xfreerdp /v:${ctConfig.ip} /f /cert:ignore /network:lan /u:"$USER" /p:"$PASS"
               
-              # Kurzer Cooldown nach Abmeldung, bevor der Login-Screen wieder kommt
               sleep 2
             done
           '';
