@@ -5,7 +5,7 @@
     bat                        # Modern cat with syntax highlighting
     bind                       # DNS diagnostic tools like dig
     btop                       # Interactive resource monitor
-    chromium                   # Open-source web browser
+    firefox                    # Browser — seccomp-Sandbox funktioniert in nspawn
     dbeaver-bin                # Universal database tool
     evince                     # Lightweight PDF viewer
     exfatprogs                 # ExFAT flash drive tools

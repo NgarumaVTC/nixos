@@ -16,6 +16,7 @@
       in {
         services.lldap = {
           enable = true;
+          silenceForceUserPassResetWarning = true;
           settings = {
             ldap_host = "0.0.0.0";
             http_host = "0.0.0.0";

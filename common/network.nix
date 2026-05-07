@@ -38,17 +38,10 @@
       vlan = 90;
     };
 
-    # --- VIRTUELLE CONTAINER (Subnetz 90 - Students) ---
-    ct90051 = {
+    # --- VIRTUELLER CONTAINER (Subnetz 90 - Ein Container für alle Schüler) ---
+    students = {
       ip = "172.20.90.51";
-      mac = "02:00:00:00:90:51"; # Muster generiert
-      vlan = 90;
-    };
-
-    # --- VIRTUELLE CONTAINER (Subnetz 90 - Students) ---
-    ct90052 = {
-      ip = "172.20.90.52";
-      mac = "02:00:00:00:90:52"; # Muster generiert
+      mac = "02:00:00:00:90:51";
       vlan = 90;
     };
 

@@ -2,9 +2,10 @@
 let
   net = import ../../../common/network.nix;
   
-  isContainer = name: node: 
-    name == "mgmt1" || 
-    name == "web01" || 
+  isContainer = name: node:
+    name == "mgmt1" ||
+    name == "web01" ||
+    name == "students" ||
     builtins.substring 0 2 name == "ct";
     
   containerNodes = lib.filterAttrs isContainer net.nodes;
@@ -23,13 +24,14 @@ in {
       networking = {
         useDHCP = false;
         defaultGateway = if node.vlan == 90 then net.gateways.students else net.gateways.default;
-        
+        nameservers = [ (if node.vlan == 90 then net.gateways.students else net.gateways.default) ];
+
         interfaces.eth0 = {
           ipv4.addresses = [{
             address = node.ip;
             prefixLength = 24;
           }];
-          macAddress = node.mac; # Bleibt als Deklaration/Dokumentation
+          macAddress = node.mac;
         };
       };
     };

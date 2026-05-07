@@ -5,7 +5,8 @@
     ../users/ramge/nixos.nix
   ];
 
-  time.timeZone = "Africa/Dar_es_Salaam";
+
+  time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "de";
 
@@ -36,6 +37,7 @@
   environment.systemPackages = with pkgs; [
     claude-code
     fzf
+    gh
     git 
     htop 
     ripgrep

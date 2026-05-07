@@ -1,0 +1,79 @@
+  Architektur-Probleme (die später wehtun)
+
+  1. Der Home-Dir-Plan skaliert nicht. In ct90051.nix steht hardcoded bindMounts."/home/student10013". Bei 120
+  Schülern brauchst du entweder 120 Mounts pro Container × 20 Container = 2400 Einträge, oder eine ganz andere
+  Strategie (z.B. /home als Ganzes binden + ZFS-Datasets per Mountpoint). Die aktuelle Lösung ist ein Dead-End,
+  das nur deshalb funktioniert weil Vaileth der einzige Schüler ist.
+
+  2. Warum überhaupt 20 separate Container? 20× systemd, 20× xrdp, 20× XFCE — das ist viel Overhead für eine
+  1:1-Zuordnung TC↔Container. Ein einziger großer Container mit xrdp und Multi-User würde das gleiche leisten.
+  User-Isolation über Linux-Permissions reicht für Schüler — du brauchst keine Kernel-Namespace-Trennung. Du
+  verbrennst Speicher und Komplexität.
+
+  3. ct90052.nix sieht aus wie Scratch-Code. Komplett andere Architektur (GNOME statt XFCE+xrdp), hardcoded User
+  student mit hardcoded Passwort studentpassword. Kein gemeinsames Modul mit ct90051 — sobald du wirklich 20
+  Container baust, hast du brutale Code-Duplikation.
+
+  4. MaxSessions=1 hatten wir diskutiert, ist aber nie implementiert. Damit untergräbst du selbst dein 1:1-Modell
+   — mehrere Schüler können simultan am gleichen Container hängen.
+
+  5. Single Point of Failure. ngarumavtc1 ist alles: Hypervisor, Netboot-Server, LDAP, Storage, Web. Server
+  stirbt → ganze Schule offline. Für Tansania mit ggf. instabilem Strom relevant.
+
+  Sicherheit (echte Risiken)
+
+  6. SSSD bindet als LDAP-Admin (uid=admin in ct90051.nix). Standard ist ein dedizierter Read-only
+  Service-Account. Wenn der Container kompromittiert wird, hat der Angreifer Admin-Rechte im Directory.
+
+  7. LDAP-Passwort NgarumaVTC steht im Klartext im Nix-Code der jetzt public auf GitHub liegt. Sops ist
+  eingerichtet — benutze es.
+
+  8. Hardcoded password = "studentpassword" in ct90052.nix. Wenn das jemals deployed wird, wars das.
+
+  9. Container haben keine Ressourcenlimits. Ein durchgedrehter Browser im Studenten-Container kann den Host
+  vollständig blockieren. systemd.services."container@ct90051".serviceConfig.MemoryMax = "...";.
+
+  Operationale Mängel
+
+  10. git add . in rebuild.sh. Bei wachsendem Repo zieht das alles rein, was du nicht explizit ignoriert hast.
+  Wenn jemand mal eine *.pem oder dump.sql reinlegt, ist sie sofort gestaged. Sicherer wäre eine explizite
+  Add-Liste oder gar nichts.
+
+  11. Kein Backup-Konzept. ZFS gibt dir Snapshots + zfs-send/recv für lau. Bei Schülerdaten muss das stehen.
+  services.sanoid o.ä.
+
+  12. Kein Monitoring/Alerting. Wie merkst du dass ct90063 nicht hochgefahren ist, außer wenn 6 Schüler
+  reklamieren?
+
+  13. DNS fehlt komplett. Alles per IP. Bei 120 Schülern und 20 Containern wird das beim Debuggen brutal.
+
+  14. network.nix listet nur tc90151 und tc01. Die anderen 19 TCs müssen irgendwann nachgepflegt werden — bessere
+   Datenstruktur wäre eine Liste mit Generator (tc${toString i} für i in 1..20).
+
+  Code Quality (eher kosmetisch)
+
+  15. tc-image.nix mischt zu viel. Boot, cage, Kiosk-Skript, SSH, Firmware-Filter, systemd-Overrides — alles in
+  einer Datei. Aufteilen in tc-image/{boot,kiosk,ssh,firmware}.nix würde lesbarer machen.
+
+  16. LAST_OCTET - 100 ist clever aber fragil. Wenn das IP-Schema sich ändert, brichst du alles wortlos.
+  Mindestens ein Sanity-Check (Container per Ping erreichbar?) bevor xfreerdp läuft.
+
+  17. --impure für einen Use-Case (SSH-Key-Source). Funktional ok, aber jeder neue Mitwirkende fragt sich warum.
+
+  Was tatsächlich gut ist
+
+  - Flake + sops-nix + ZFS-Per-Dataset sind die richtigen Bausteine
+  - Netboot-Kiosk-Konzept ist elegant
+  - Runtime-IP-Berechnung statt Per-Device-Image: clevere Vereinfachung
+  - Du machst aktiv NixOS, nicht Pseudo-NixOS-mit-Bash-überall
+
+  Was ich an deiner Stelle als nächstes anginge
+
+  In Reihenfolge:
+  1. Sops für LDAP-Passwort (Punkt 7) — schnell, sofortiger Sicherheitsgewinn
+  2. Container-Architektur entscheiden (Punkt 1+2) — bevor du den 2. echten Schüler anlegst
+  3. ZFS-Snapshots (Punkt 11) — services.sanoid ist ein Einzeiler-NixOS-Modul
+  4. MaxSessions=1 (Punkt 4) — ein Halbsatz Config
+
+  Den Rest kannst du iterativ aufräumen. Die Kernfrage ist Punkt 2 — die Antwort darauf prägt alles weitere.
+
