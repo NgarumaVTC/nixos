@@ -7,9 +7,19 @@
         myConfig = net.nodes.web01;
         tcEval = import (pkgs.path + "/nixos/lib/eval-config.nix") {
           system = "x86_64-linux";
-          modules = [ ./tc-image.nix ];
+          modules = [ 
+            ./tc-image.nix 
+          ];
         };
         targetInit = "${tcEval.config.system.build.toplevel}/init";
+        # iPXE-Loader gehört hierher, nicht ins TC-Image
+        customIpxe = pkgs.ipxe.override {
+          embedScript = pkgs.writeText "embed.ipxe" ''
+            #!ipxe
+            dhcp
+            chain http://${myConfig.ip}/boot.ipxe
+          '';
+        };
       in {
         networking.firewall.enable = false;
 
@@ -23,7 +33,7 @@
           wantedBy = [ "multi-user.target" ];
           serviceConfig.Type = "oneshot";
           script = ''
-            ln -sf ${tcEval.config.boot.customIpxe}/undionly.kpxe /var/www/public/undionly.kpxe
+            ln -sf ${customIpxe}/undionly.kpxe /var/www/public/undionly.kpxe
             ln -sf ${tcEval.config.system.build.kernel}/bzImage /var/www/public/bzImage
             ln -sf ${tcEval.config.system.build.netbootRamdisk}/initrd /var/www/public/initrd
             ln -sf ${tcEval.config.system.build.squashfsStore}/squashfs.img /var/www/public/squashfs.img
@@ -31,7 +41,7 @@
             cat > /var/www/public/boot.ipxe <<'EOF_IPXE'
 #!ipxe
 echo ========================================
-echo !!! AFRIKA-BOOT-V10 (STAGE 2 INIT)   !!!
+echo !!! AFRIKA-BOOT-V11 (FIXED SIZE)     !!!
 echo ========================================
 set base-url http://${myConfig.ip}
 kernel ''${base-url}/bzImage initrd=initrd fetch=''${base-url}/squashfs.img init=${targetInit} boot.shell_on_fail console=tty1 ip=enp27s0:dhcp

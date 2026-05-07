@@ -34,6 +34,7 @@
   };
 
   environment.systemPackages = with pkgs; [
+    claude-code
     fzf
     git 
     htop 
