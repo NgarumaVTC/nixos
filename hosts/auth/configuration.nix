@@ -11,7 +11,7 @@
 
     config = { config, pkgs, ... }: 
       let
-        net = import ../../../common/network.nix;
+        net = import ../../common/network.nix;
         myConfig = net.nodes.ctauth;
       in {
         services.lldap = {

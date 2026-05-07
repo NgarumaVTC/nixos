@@ -7,7 +7,7 @@
 
     config = { config, pkgs, ... }: 
       let
-        net = import ../../../common/network.nix;
+        net = import ../../common/network.nix;
         yamlFormat = pkgs.formats.yaml { };
         ansibleInventory = {
           all = {

@@ -3,12 +3,12 @@
   containers.web01 = {
     config = { config, pkgs, ... }: 
       let
-        net = import ../../../common/network.nix;
+        net = import ../../common/network.nix;
         myConfig = net.nodes.web01;
         tcEval = import (pkgs.path + "/nixos/lib/eval-config.nix") {
           system = "x86_64-linux";
-          modules = [ 
-            ./tc-image.nix 
+          modules = [
+            ../thin-client/image.nix
           ];
         };
         targetInit = "${tcEval.config.system.build.toplevel}/init";

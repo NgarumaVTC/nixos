@@ -1,6 +1,6 @@
 { config, lib, ... }:
 let
-  net = import ../../../common/network.nix;
+  net = import ./network.nix;
   
   isContainer = name: node:
     name == "mgmt1" ||
@@ -17,8 +17,8 @@ in {
 
     config = {
       imports = [
-        ../../../common/default.nix
-        ../../../common/ct.nix
+        ./default.nix
+        ./ct.nix
       ];
 
       networking = {

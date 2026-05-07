@@ -15,7 +15,7 @@
     };
 
     config = { config, pkgs, ... }: {
-      imports = [ ../../../common/studentssoftware.nix ];
+      imports = [ ./software.nix ];
 
       environment.systemPackages = [ pkgs.bash ];
       environment.binsh = "${pkgs.bash}/bin/bash";
