@@ -77,3 +77,74 @@
 
   Den Rest kannst du iterativ aufräumen. Die Kernfrage ist Punkt 2 — die Antwort darauf prägt alles weitere.
 
+  ─────────────────────────────────────────────────────────────────────────
+  Ergänzungen 2026-05-08 (nach Futro-S740-Inbetriebnahme + Schüler-Provisioning)
+  ─────────────────────────────────────────────────────────────────────────
+
+  Sicherheit (kritisch, neu)
+
+  18. LLDAP_JWT_SECRET=NgarumaVTC in /var/lib/secrets/lldap.env. Das ist der
+  JWT-Signaturschlüssel. Wer den kennt kann beliebige Admin-Tokens fälschen
+  und über die lldap-API alles tun. Muss ein zufälliger 32+-Byte-String sein,
+  via sops verwaltet. Klartext-Datei in /var/lib/secrets/ ist generell
+  fragwürdig.
+
+  19. Dreifach-Passwort-Reuse: Schüler-PW = lldap-Admin-PW = JWT-Secret = "NgarumaVTC".
+  Wenn ein einziges Schüler-PW geleakt wird (was passiert), ist das gesamte
+  Directory inkl. Admin-Zugriff offen. Mindestens diese drei Geheimnisse
+  voneinander trennen.
+
+  20. Cage läuft als root in image.nix (services.cage.user = "root"). Bug im
+  Kiosk-Script → root auf dem TC. Sollte ein dedizierter unprivilegierter
+  Kiosk-User sein.
+
+  21. provision-students.sh hat das Default-Passwort "NgarumaVTC" hardcoded.
+  Sobald sops für Punkt 7 gelöst ist, sollte auch das Provisioning-Script
+  daraus lesen — und idealerweise pro User ein zufälliges Initial-PW
+  generieren mit "must change on first login".
+
+  Hardcoding (neu, durch heutigen Hardware-Wechsel sichtbar geworden)
+
+  22. ip=enp27s0:dhcp in web/configuration.nix:48 — hardcoded auf das alte
+  Grenade-Interface. Hat den Futro-Boot zwar nicht verhindert (initrd macht
+  eigenes DHCP), aber sollte trotzdem ip=dhcp werden um interface-agnostisch
+  zu sein.
+
+  23. CT_IP="172.20.90.51" im Kiosk-Script ist hardcoded, obwohl
+  common/network.nix als Abstraktion existiert (net.nodes.students.ip).
+  Sollte über pkgs.substituteAll oder per-TC-Image-Build aus network.nix
+  reingereicht werden.
+
+  24. image-grenade.nix ist totes File — wird in keinem Import referenziert.
+  Entweder als zweite Hardware-Variante echt einbinden (per-Hostname-Match
+  via PXE) oder löschen.
+
+  25. Auflösung "1920x1080@60" und nur erster wlr-randr-Output werden
+  hardcoded gewählt. Multi-Monitor (zweiter DP-Anschluss am Futro) wird
+  ignoriert. Bei abweichender Hardware bricht das.
+
+  Betrieb (neu, aus den heutigen Bugs gelernt)
+
+  26. PAM makeHomeDir setzt falsche Ownership beim Bind-Mount /home von
+  Host in Container — Verzeichnis gehört root:root statt user:users.
+  Folge: xauth-Timeout, "X server could not be started", User-Login
+  scheitert ohne klare Fehlermeldung. Heute manuell mit chown gefixt.
+  Lösung: oneshot-Service oder PAM-Hook im students-Container der vor dem
+  ersten Login das Home-Verzeichnis korrekt erstellt/anpasst.
+
+  27. CSV-Datenverlust: students.csv hat firstNames (Geburtsnamen, z.B.
+  "Goodluck Horst"), trade ("MB", "DSCT", "CJ") und entryDate. Davon
+  speichert lldap aktuell *nichts* — nur nickName landet als firstName.
+  Sollten in lldap als Custom-Attribute (birth_names, trade, entry_date)
+  ergänzt werden, sonst ist die CSV faktisch verlustbehaftet.
+
+  28. Kein "Shutdown"/"Cancel"-Button im zenity-Login-Dialog. Bei falscher
+  Eingabe 2s warten → wieder Login-Dialog. User kann den TC nicht sauber
+  herunterfahren ohne Stromstecker.
+
+  29. UEFI/BIOS-Dualität ist jetzt im Setup vorhanden (Futro=UEFI mit
+  ipxe.efi, Grenade=BIOS mit undionly.kpxe), aber der DHCP-Match auf hapax3
+  ist *per MAC* gemacht (lease-bound option-set). Skaliert nicht für 20 TCs.
+  Sollte stattdessen über DHCP Option 93 (Client Architecture) automatisch
+  switchen — UEFI-Clients bekommen ipxe.efi, BIOS-Clients undionly.kpxe.
+

@@ -2,7 +2,9 @@
 
 {
   imports = [
+    # Nur Core-Netboot, ohne Installer-Bloat (base.nix, installation-device.nix)
     (modulesPath + "/installer/netboot/netboot.nix")
+    # Perl + Python aus dem Image entfernen (~300MB)
     (modulesPath + "/profiles/perlless.nix")
   ];
 
@@ -10,28 +12,32 @@
 
   # Nix nicht nötig auf TC — Image wird zentral gebaut
   nix.enable = false;
+  # register-nix-paths überschreiben damit Nix aus dem Closure fällt
   systemd.services.register-nix-paths.script = lib.mkForce ''
     touch /etc/NIXOS
   '';
 
-  # Nur Firmware für die tatsächliche Hardware (Gemini Lake + r8169)
+  # Nur Firmware für die tatsächliche Hardware (Carrizo/Bristol Ridge + r8169)
   hardware.enableAllHardware = false;
   hardware.enableRedistributableFirmware = false;
-  hardware.cpu.intel.updateMicrocode = true;
   hardware.firmware = [
     (pkgs.runCommand "tc-firmware" {} ''
       SRC=${pkgs.linux-firmware}/lib/firmware
-      mkdir -p $out/lib/firmware/{i915,rtl_nic}
+      mkdir -p $out/lib/firmware/{amdgpu,rtl_nic,amd-ucode}
 
-      # Intel UHD Graphics 600 (Gemini Lake / GLK)
-      cp $SRC/i915/glk_*.bin $out/lib/firmware/i915/ 2>/dev/null || true
+      # AMD Carrizo / Bristol Ridge GPU (PCI 1002:9874)
+      cp $SRC/amdgpu/carrizo_*.bin $out/lib/firmware/amdgpu/
 
-      # Realtek r8169 NIC (RTL8111/8168, PCI 02:00.0)
+      # Realtek r8169 NIC (PCI 10EC:8168)
       cp $SRC/rtl_nic/rtl8168*.fw $out/lib/firmware/rtl_nic/ 2>/dev/null || true
       cp $SRC/rtl_nic/rtl8411*.fw $out/lib/firmware/rtl_nic/ 2>/dev/null || true
+
+      # AMD CPU microcode (family 15h = Bristol Ridge)
+      cp $SRC/amd-ucode/microcode_amd_fam15h.bin $out/lib/firmware/amd-ucode/
     '')
   ];
 
+  # Keine Dokumentation
   documentation.enable = false;
   documentation.nixos.enable = lib.mkForce false;
   documentation.man.enable = false;
@@ -40,7 +46,7 @@
   boot = {
     kernelParams = [ "video=1920x1080@60" "quiet" "panic=10" ];
     initrd.availableKernelModules = [ "xhci_pci" "ahci" "usb_storage" "sd_mod" "r8169" ];
-    initrd.kernelModules = [ "i915" ];
+    initrd.kernelModules = [ "radeon" "amdgpu" ];
     initrd.compressor = "zstd";
   };
 

@@ -34,6 +34,7 @@
           serviceConfig.Type = "oneshot";
           script = ''
             ln -sf ${customIpxe}/undionly.kpxe /var/www/public/undionly.kpxe
+            ln -sf ${customIpxe}/ipxe.efi /var/www/public/ipxe.efi
             ln -sf ${tcEval.config.system.build.kernel}/bzImage /var/www/public/bzImage
             ln -sf ${tcEval.config.system.build.netbootRamdisk}/initrd /var/www/public/initrd
             ln -sf ${tcEval.config.system.build.squashfsStore}/squashfs.img /var/www/public/squashfs.img
