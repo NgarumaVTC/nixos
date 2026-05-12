@@ -1,4 +1,4 @@
-# /etc/nixos/hosts/ngarumavtc1/configuration.nix
+# /etc/nixos/hosts/nvtc1/configuration.nix
 { config, pkgs, ... }:
 
 {
@@ -28,8 +28,8 @@
   # 2. Netzwerk (Routing & Bridge)
   networking = {
     firewall.enable = false;
-    hostName = "ngarumavtc1";
-    hostId = "0346c59b";
+    hostName = "nvtc1";
+    hostId = "445febef";
     useDHCP = false;
     defaultGateway = "172.20.0.1";
     nameservers = [ "172.20.0.1" ];
