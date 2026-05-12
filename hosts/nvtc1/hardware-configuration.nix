@@ -7,12 +7,13 @@
 
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "nvme" "usb_storage" "usbhid" "sd_mod" "sdhci_pci" ];
   boot.initrd.kernelModules = [ "dm-snapshot" "raid1" ];
+  boot.swraid.mdadmConf = "ARRAY /dev/md0 metadata=1.2 UUID=73b0de17:96901961:9b77ab07:34e8b4d4";
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
   # md RAID1 (sda2+sdb2+sdc2) → LVM vg_nixos → root + swap
   fileSystems."/" = {
-    device = "/dev/mapper/vg_nixos-root";
+    device = "/dev/mapper/vg_nvtc1-root";
     fsType = "ext4";
   };
 
@@ -24,7 +25,7 @@
   };
 
   swapDevices = [
-    { device = "/dev/mapper/vg_nixos-swap"; }
+    { device = "/dev/mapper/vg_nvtc1-swap"; }
   ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
