@@ -9,6 +9,14 @@
   boot.initrd.kernelModules = [ "dm-snapshot" "raid1" ];
   boot.swraid.mdadmConf = "ARRAY /dev/md0 metadata=1.2 UUID=73b0de17:96901961:9b77ab07:34e8b4d4";
   boot.kernelModules = [ "kvm-intel" ];
+
+  # LVM nur auf md0 — verhindert dass udev vg_nixos (NVMe) im initrd aktiviert
+  boot.initrd.systemd.contents."/etc/lvm/lvm.conf".text = ''
+    devices {
+      filter = [ "a|^/dev/md|", "r|.*|" ]
+      global_filter = [ "a|^/dev/md|", "r|.*|" ]
+    }
+  '';
   boot.extraModulePackages = [ ];
 
   # md RAID1 (sda2+sdb2+sdc2) → LVM vg_nixos → root + swap
