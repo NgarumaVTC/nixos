@@ -43,6 +43,15 @@
     { device = "/dev/mapper/vg_nvtc1-swap"; }
   ];
 
+  # ZFS: Pool "tank" per GUID importieren — vermeidet Konflikte bei gleichnamigen Pools
+  systemd.services."zfs-import-tank".script = let
+    zfs = config.boot.zfs.package;
+  in lib.mkForce ''
+    if ! ${zfs}/bin/zpool list tank > /dev/null 2>&1; then
+      ${zfs}/bin/zpool import -d /dev/disk/by-partlabel -N 14376766170460333860
+    fi
+  '';
+
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
