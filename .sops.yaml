@@ -1,10 +1,10 @@
 keys:
-  - &mbp2       age1auctcqaw38fzctu87vf4ddd440td3rm4eczn4ke59zxnyxfyk9lqsd6xk0
-  - &ngarumavtc1 age1q4428fyp0rm6g0z0fdrj9dzdd6ndpvencsh66xp7gkhv4734udeqnmssfu
+  - &ramge age1e44u5h220c68anq30kaz8g9e6xnylnwsygnpg2667c76993zf9mstfpcn4
+  - &mkuu1 age1duc22405mpn8jarpc9ukkhy4l7uvs7ngkgw6u3c897mfagguceusla4m5c
 
 creation_rules:
   - path_regex: secrets/.*\.yaml$
     key_groups:
       - age:
-          - *mbp2
-          - *ngarumavtc1
+          - *ramge
+          - *mkuu1
