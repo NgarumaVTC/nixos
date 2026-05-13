@@ -5,7 +5,7 @@
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
 
-  # nvme bewusst nicht im initrd — nvtc1 bootet von SATA/md0
+  # nvme bewusst nicht im initrd — mkuu1 bootet von SATA/md0
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usb_storage" "usbhid" "sd_mod" "sdhci_pci" ];
   boot.initrd.kernelModules = [ "dm-snapshot" "raid1" ];
   boot.swraid.enable = true;
@@ -13,22 +13,22 @@
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
-  # LVM: NUR vg_nvtc1 aktivieren — ignoriert fremde VGs (vg_nixos, vg-peano, etc.)
+  # LVM: NUR vg_mkuu1 aktivieren — ignoriert fremde VGs (vg_nixos, vg-peano, etc.)
   # lvmlocal.conf wird NACH lvm.conf gelesen und überschreibt gezielt
   boot.initrd.systemd.contents."/etc/lvm/lvmlocal.conf".text = ''
     activation {
-      auto_activation_volume_list = [ "vg_nvtc1" ]
+      auto_activation_volume_list = [ "vg_mkuu1" ]
     }
   '';
   environment.etc."lvm/lvmlocal.conf".text = ''
     activation {
-      auto_activation_volume_list = [ "vg_nvtc1" ]
+      auto_activation_volume_list = [ "vg_mkuu1" ]
     }
   '';
 
-  # md RAID1 (sda2+sdb2+sdc2) → LVM vg_nvtc1 → root + swap
+  # md RAID1 (sda2+sdb2+sdc2) → LVM vg_mkuu1 → root + swap
   fileSystems."/" = {
-    device = "/dev/mapper/vg_nvtc1-root";
+    device = "/dev/mapper/vg_mkuu1-root";
     fsType = "ext4";
   };
 
@@ -40,7 +40,7 @@
   };
 
   swapDevices = [
-    { device = "/dev/mapper/vg_nvtc1-swap"; }
+    { device = "/dev/mapper/vg_mkuu1-swap"; }
   ];
 
   # ZFS: Pool "tank" per GUID importieren — vermeidet Konflikte bei gleichnamigen Pools

@@ -8,12 +8,12 @@
   };
 
   outputs = { self, nixpkgs, sops-nix }: {
-    nixosConfigurations.nvtc1 = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.mkuu1 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
         sops-nix.nixosModules.sops
-        ./hosts/nvtc1/hardware-configuration.nix
-        ./hosts/nvtc1/configuration.nix
+        ./hosts/mkuu1/hardware-configuration.nix
+        ./hosts/mkuu1/configuration.nix
       ];
     };
   };

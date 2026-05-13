@@ -1,4 +1,4 @@
-# /etc/nixos/hosts/nvtc1/configuration.nix
+# /etc/nixos/hosts/mkuu1/configuration.nix
 { config, pkgs, ... }:
 
 {
@@ -29,7 +29,7 @@
   # 2. Netzwerk (Routing & Bridge)
   networking = {
     firewall.enable = false;
-    hostName = "nvtc1";
+    hostName = "mkuu1";
     hostId = "445febef";
     useDHCP = false;
     defaultGateway = "172.20.0.1";
