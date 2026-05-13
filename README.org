@@ -1,0 +1,41 @@
+#+TITLE: NgarumaVTC — NixOS Configuration
+#+OPTIONS: toc:nil
+
+The declarative NixOS configuration for the [[https://github.com/NgarumaVTC/KaziLab][KaziLab]] school server at
+Ngaruma Vocational Training Centre, Kilimanjaro Region, Tanzania.
+
+One flake. One rebuild. Twenty students online.
+
+* Structure
+
+#+BEGIN_EXAMPLE
+flake.nix              Flake entry point (nixpkgs-unstable + sops-nix)
+hosts/mkuu1/           Server host configuration
+common/
+  network.nix          Single source of truth: all IPs, MACs, VLANs
+  containers.nix       systemd-nspawn container definitions
+  ct.nix               Shared container base module
+users/
+  ramge/               Admin SSH keys
+  students.csv         Student roster (bulk import via provision-students.sh)
+  provision-students.sh
+#+END_EXAMPLE
+
+* Usage
+
+#+BEGIN_SRC bash
+# Rebuild and switch on the server
+sudo nixos-rebuild switch --flake .#mkuu1
+
+# Roll back if something breaks
+sudo nixos-rebuild switch --rollback
+#+END_SRC
+
+* Links
+
+- Project documentation: [[https://github.com/NgarumaVTC/KaziLab]]
+- Zukunft bauen e.V.: [[https://www.zukunft-bauen.online/]]
+
+* License
+
+[[https://opensource.org/licenses/MIT][MIT]] — do whatever you want with it. A mention is appreciated.
