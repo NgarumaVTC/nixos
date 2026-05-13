@@ -10,7 +10,7 @@ One flake. One rebuild. Twenty students online.
 
 #+BEGIN_EXAMPLE
 flake.nix              Flake entry point (nixpkgs-unstable + sops-nix)
-hosts/mkuu1/           Server host configuration
+hosts/mkuu1/           Server host configuration  (mkuu = "the chief", Swahili)
 common/
   network.nix          Single source of truth: all IPs, MACs, VLANs
   containers.nix       systemd-nspawn container definitions
