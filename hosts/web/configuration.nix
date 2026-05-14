@@ -96,11 +96,25 @@ polkit-elogind
 lightdm
 lightdm-gtk-greeter
 ttf-dejavu
+openssh
 WORLD
 
           # nslcd-Config mit echtem LDAP-Passwort (aus sops-Template)
           cp /run/hybridclient-nslcd.conf "$WORK"/etc/nslcd/nslcd.conf
           chmod 600 "$WORK"/etc/nslcd/nslcd.conf
+
+          # sshd-Config: root-Login mit Passwort (nur für Debugging)
+          mkdir -p "$WORK"/etc/ssh
+          cat > "$WORK"/etc/ssh/sshd_config << 'SSHD'
+PermitRootLogin yes
+PasswordAuthentication yes
+SSHD
+          # root-Passwort setzen (local.d läuft nach apk add)
+          cat > "$WORK"/etc/local.d/root-password.start << 'ROOTPW'
+#!/bin/sh
+echo 'root:NgarumaVTC' | chpasswd
+ROOTPW
+          chmod +x "$WORK"/etc/local.d/root-password.start
 
           # nsswitch.conf: LDAP für passwd/group/shadow aktivieren
           cat > "$WORK"/etc/nsswitch.conf << 'NSW'
@@ -130,6 +144,7 @@ REMMINA
 
           # OpenRC-Services
           ln -sf /etc/init.d/dbus    "$WORK"/etc/runlevels/boot/dbus
+          ln -sf /etc/init.d/sshd    "$WORK"/etc/runlevels/default/sshd
           ln -sf /etc/init.d/nslcd   "$WORK"/etc/runlevels/default/nslcd
           ln -sf /etc/init.d/lightdm "$WORK"/etc/runlevels/default/lightdm
           ln -sf /etc/init.d/local   "$WORK"/etc/runlevels/default/local
