@@ -108,3 +108,11 @@ Kommentar ergänzen oder saubere Lösung suchen.
 Altlasten aus der Umbenennung ngarumavtc1→mkuu1: =tank/old/containers=
 (27.5M), =tank/old/data/homes= (211M mit student10013-15). Nach
 Verifikation dass keine Daten fehlen: =zfs destroy -r tank/old=.
+
+** TODO [#B] ZFS Home-Datasets auf tank/data/homes migrieren
+Student-Homes liegen noch auf tank/old/data/homes/ (gemountet unter
+/home/studentXXXX). Diese auf tank/data/homes migrieren, z.B. per
+=zfs send/recv= oder =zfs rename=. Danach tank/old aufräumen.
+Betrifft: student10013, student10014, student10015.
+Hängt zusammen mit: lldap liefert kein homeDirectory-Attribut —
+nslcd mappt aktuell hart auf "/home/$uid".

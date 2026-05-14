@@ -44,8 +44,8 @@
         map passwd uid              uid
         map passwd uidNumber        uidNumber
         map passwd gidNumber        gidNumber
-        map passwd homeDirectory    homeDirectory
-        map passwd loginShell       loginShell
+        map passwd homeDirectory    "/home/$uid"
+        map passwd loginShell       "/bin/sh"
       '';
     };
   };
