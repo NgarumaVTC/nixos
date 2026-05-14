@@ -54,7 +54,15 @@
     "/media/ClassMaterial"      = { device = "tank/data/lehrpult"; fsType = "zfs"; };
   };
 
-  # 4. Host-spezifische Erweiterungen
+  # 4. NFS-Export: Home-Verzeichnisse für hybridclient
+  services.nfs.server = {
+    enable = true;
+    exports = ''
+      /home  172.20.90.0/24(rw,sync,no_subtree_check,no_root_squash)
+    '';
+  };
+
+  # 5. Host-spezifische Erweiterungen
   users.users.ramge.extraGroups = [ "zfs" ]; # Erweitert den User aus common/default.nix
 
   environment.systemPackages = with pkgs; [
