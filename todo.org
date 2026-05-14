@@ -1,150 +1,105 @@
-  Architektur-Probleme (die später wehtun)
+#+TITLE: KaziLab NixOS — Offene Punkte
+#+DATE: 2026-05-14
 
-  1. Der Home-Dir-Plan skaliert nicht. In ct90051.nix steht hardcoded bindMounts."/home/student10013". Bei 120
-  Schülern brauchst du entweder 120 Mounts pro Container × 20 Container = 2400 Einträge, oder eine ganz andere
-  Strategie (z.B. /home als Ganzes binden + ZFS-Datasets per Mountpoint). Die aktuelle Lösung ist ein Dead-End,
-  das nur deshalb funktioniert weil Vaileth der einzige Schüler ist.
+* Architektur
 
-  2. Warum überhaupt 20 separate Container? 20× systemd, 20× xrdp, 20× XFCE — das ist viel Overhead für eine
-  1:1-Zuordnung TC↔Container. Ein einziger großer Container mit xrdp und Multi-User würde das gleiche leisten.
-  User-Isolation über Linux-Permissions reicht für Schüler — du brauchst keine Kernel-Namespace-Trennung. Du
-  verbrennst Speicher und Komplexität.
+** TODO [#B] Single Point of Failure
+ngarumavtc1 ist alles: Hypervisor, Netboot-Server, LDAP, Storage, Web.
+Server stirbt → ganze Schule offline. Für Tansania mit ggf. instabilem
+Strom relevant. Mittel: USV (läuft), zweiter billiger Standby-Server.
 
-  3. ct90052.nix sieht aus wie Scratch-Code. Komplett andere Architektur (GNOME statt XFCE+xrdp), hardcoded User
-  student mit hardcoded Passwort studentpassword. Kein gemeinsames Modul mit ct90051 — sobald du wirklich 20
-  Container baust, hast du brutale Code-Duplikation.
+** TODO [#C] MaxSessions=1 für xrdp fehlt noch
+Mehrere Schüler können simultan an derselben RDP-Session hängen.
+Im students-Container: =services.xrdp.settings.Globals.MaxSessions = 1;=
 
-  4. MaxSessions=1 hatten wir diskutiert, ist aber nie implementiert. Damit untergräbst du selbst dein 1:1-Modell
-   — mehrere Schüler können simultan am gleichen Container hängen.
+** TODO [#C] network.nix: nur 2 von 20 TCs eingetragen
+tc90151 und tc01 sind definiert, die anderen 18 fehlen (MAC noch
+unbekannt). Bessere Datenstruktur: =map (i: { ip = "172.20.90.${i}"; ...})
+(range 151 170)= statt Einzeleinträge.
 
-  5. Single Point of Failure. ngarumavtc1 ist alles: Hypervisor, Netboot-Server, LDAP, Storage, Web. Server
-  stirbt → ganze Schule offline. Für Tansania mit ggf. instabilem Strom relevant.
+* Sicherheit
 
-  Sicherheit (echte Risiken)
+** TODO [#A] JWT-Secret ist Klartext "NgarumaVTC"
+=LLDAP_JWT_SECRET=NgarumaVTC= in =/var/lib/secrets/lldap.env=. Wer den
+kennt kann beliebige Admin-Tokens fälschen. Muss zufälliger 32+-Byte-String
+sein, via sops verwaltet.
 
-  6. SSSD bindet als LDAP-Admin (uid=admin in ct90051.nix). Standard ist ein dedizierter Read-only
-  Service-Account. Wenn der Container kompromittiert wird, hat der Angreifer Admin-Rechte im Directory.
+** TODO [#A] Dreifach-Passwort-Reuse
+Schüler-PW = lldap-Admin-PW = JWT-Secret = "NgarumaVTC".
+Ein geleaktes Schüler-PW öffnet das gesamte Directory. Die drei
+Geheimnisse sofort voneinander trennen.
 
-  7. LDAP-Passwort NgarumaVTC steht im Klartext im Nix-Code der jetzt public auf GitHub liegt. Sops ist
-  eingerichtet — benutze es.
+** TODO [#B] SSSD bindet als LDAP-Admin
+uid=admin hat Admin-Rechte im Directory. Standard: dedizierter
+Read-only Service-Account für SSSD.
 
-  8. Hardcoded password = "studentpassword" in ct90052.nix. Wenn das jemals deployed wird, wars das.
+** TODO [#B] provision-students.sh: Default-Passwort hardcoded
+"NgarumaVTC" im Script. Soll aus sops lesen und idealerweise
+pro User ein zufälliges Initial-PW generieren (must-change on first login).
 
-  9. Container haben keine Ressourcenlimits. Ein durchgedrehter Browser im Studenten-Container kann den Host
-  vollständig blockieren. systemd.services."container@ct90051".serviceConfig.MemoryMax = "...";.
+* Hybridclient (Alpine)
 
-  Operationale Mängel
+** TODO [#A] APK-Mirror: Sparse statt Full-Mirror
+Aktueller rsync spiegelt main + community komplett (~22-25 GB).
+Wir brauchen nur ~15 Pakete (~300-500 MB). Lösung: =apk fetch= für
+benötigte Pakete + Abhängigkeiten, dann Index generieren.
+Spart ~22 GB auf dem tank-Pool.
 
-  10. git add . in rebuild.sh. Bei wachsendem Repo zieht das alles rein, was du nicht explizit ignoriert hast.
-  Wenn jemand mal eine *.pem oder dump.sql reinlegt, ist sie sofort gestaged. Sicherer wäre eine explizite
-  Add-Liste oder gar nichts.
+** TODO [#B] Remmina RDP-IP hardcoded (172.20.90.51)
+In =web/configuration.nix= (Remmina-Preset im apkovl). Sollte aus
+=common/network.nix= (=net.nodes.students.ip=) kommen.
 
-  11. Kein Backup-Konzept. ZFS gibt dir Snapshots + zfs-send/recv für lau. Bei Schülerdaten muss das stehen.
-  services.sanoid o.ä.
+** TODO [#B] NFS-Home: Single Point of Failure
+Wenn mkuu1 down ist, sind die Home-Verzeichnisse auf dem hybridclient
+nicht mehr erreichbar. Mittel: =soft= mount (schon gesetzt) + lokales
+Scratch-Dir als Fallback.
 
-  12. Kein Monitoring/Alerting. Wie merkst du dass ct90063 nicht hochgefahren ist, außer wenn 6 Schüler
-  reklamieren?
+** TODO [#C] Auflösung 1920x1080 hardcoded
+Im Remmina-Preset. Bei abweichender Hardware (kleinere Monitore) bricht
+das. Lösung: autodetect oder konfigurierbarer Parameter.
 
-  13. DNS fehlt komplett. Alles per IP. Bei 120 Schülern und 20 Containern wird das beim Debuggen brutal.
+** TODO [#C] image-grenade.nix ist totes File
+Wird in keinem Import referenziert. Entweder als zweite Hardware-Variante
+einbinden (per-MAC-Match via PXE) oder löschen.
 
-  14. network.nix listet nur tc90151 und tc01. Die anderen 19 TCs müssen irgendwann nachgepflegt werden — bessere
-   Datenstruktur wäre eine Liste mit Generator (tc${toString i} für i in 1..20).
+* Betrieb
 
-  Code Quality (eher kosmetisch)
+** TODO [#A] PAM makeHomeDir: falsche Ownership
+makeHomeDir setzt =root:root= statt =user:users= beim Bind-Mount /home.
+Folge: xauth-Timeout, Login scheitert ohne klare Fehlermeldung.
+Heute manuell mit chown gefixt. Lösung: oneshot-Service im
+students-Container der vor dem ersten Login das Home korrekt anlegt.
 
-  15. tc-image.nix mischt zu viel. Boot, cage, Kiosk-Skript, SSH, Firmware-Filter, systemd-Overrides — alles in
-  einer Datei. Aufteilen in tc-image/{boot,kiosk,ssh,firmware}.nix würde lesbarer machen.
+** TODO [#B] Kein Backup-Konzept
+ZFS gibt Snapshots + zfs-send/recv für lau. =services.sanoid= ist ein
+Einzeiler-NixOS-Modul.
 
-  16. LAST_OCTET - 100 ist clever aber fragil. Wenn das IP-Schema sich ändert, brichst du alles wortlos.
-  Mindestens ein Sanity-Check (Container per Ping erreichbar?) bevor xfreerdp läuft.
+** TODO [#B] Kein Monitoring/Alerting
+Wie merkt man dass der students-Container nicht hochgefahren ist, außer
+wenn Schüler reklamieren?
 
-  17. --impure für einen Use-Case (SSH-Key-Source). Funktional ok, aber jeder neue Mitwirkende fragt sich warum.
+** TODO [#C] DNS fehlt komplett
+Alles per IP. Beim Debuggen mit 20 Clients brutal. Mindestens
+/etc/hosts-Einträge oder ein lokaler Unbound.
 
-  Was tatsächlich gut ist
+** TODO [#C] CSV-Datenverlust beim Student-Import
+students.csv hat firstNames, trade ("MB", "DSCT", "CJ") und entryDate.
+Davon speichert lldap aktuell nichts — nur nickName landet als firstName.
+Als lldap Custom-Attribute ergänzen.
 
-  - Flake + sops-nix + ZFS-Per-Dataset sind die richtigen Bausteine
-  - Netboot-Kiosk-Konzept ist elegant
-  - Runtime-IP-Berechnung statt Per-Device-Image: clevere Vereinfachung
-  - Du machst aktiv NixOS, nicht Pseudo-NixOS-mit-Bash-überall
+** TODO [#C] Kein Shutdown-Button im hybridclient
+User kann den TC nicht sauber herunterfahren. XFCE4 hat einen
+Logout-Dialog — sicherstellen dass er erreichbar ist und nicht geblockt.
 
-  Was ich an deiner Stelle als nächstes anginge
+** TODO [#C] UEFI/BIOS-Dualität skaliert nicht
+DHCP-Match auf hapax3 ist per-MAC (lease-bound option-set). Skaliert
+nicht für 20 TCs. Besser: DHCP Option 93 (Client Architecture) —
+UEFI-Clients → ipxe.efi, BIOS-Clients → undionly.kpxe.
 
-  In Reihenfolge:
-  1. Sops für LDAP-Passwort (Punkt 7) — schnell, sofortiger Sicherheitsgewinn
-  2. Container-Architektur entscheiden (Punkt 1+2) — bevor du den 2. echten Schüler anlegst
-  3. ZFS-Snapshots (Punkt 11) — services.sanoid ist ein Einzeiler-NixOS-Modul
-  4. MaxSessions=1 (Punkt 4) — ein Halbsatz Config
+** TODO [#C] git add . in rebuild.sh
+Zieht alles rein was nicht explizit ignoriert ist. Besser: explizite
+Add-Liste oder --impure ohne auto-staging.
 
-  Den Rest kannst du iterativ aufräumen. Die Kernfrage ist Punkt 2 — die Antwort darauf prägt alles weitere.
-
-  ─────────────────────────────────────────────────────────────────────────
-  Ergänzungen 2026-05-08 (nach Futro-S740-Inbetriebnahme + Schüler-Provisioning)
-  ─────────────────────────────────────────────────────────────────────────
-
-  Sicherheit (kritisch, neu)
-
-  18. LLDAP_JWT_SECRET=NgarumaVTC in /var/lib/secrets/lldap.env. Das ist der
-  JWT-Signaturschlüssel. Wer den kennt kann beliebige Admin-Tokens fälschen
-  und über die lldap-API alles tun. Muss ein zufälliger 32+-Byte-String sein,
-  via sops verwaltet. Klartext-Datei in /var/lib/secrets/ ist generell
-  fragwürdig.
-
-  19. Dreifach-Passwort-Reuse: Schüler-PW = lldap-Admin-PW = JWT-Secret = "NgarumaVTC".
-  Wenn ein einziges Schüler-PW geleakt wird (was passiert), ist das gesamte
-  Directory inkl. Admin-Zugriff offen. Mindestens diese drei Geheimnisse
-  voneinander trennen.
-
-  20. Cage läuft als root in image.nix (services.cage.user = "root"). Bug im
-  Kiosk-Script → root auf dem TC. Sollte ein dedizierter unprivilegierter
-  Kiosk-User sein.
-
-  21. provision-students.sh hat das Default-Passwort "NgarumaVTC" hardcoded.
-  Sobald sops für Punkt 7 gelöst ist, sollte auch das Provisioning-Script
-  daraus lesen — und idealerweise pro User ein zufälliges Initial-PW
-  generieren mit "must change on first login".
-
-  Hardcoding (neu, durch heutigen Hardware-Wechsel sichtbar geworden)
-
-  22. ip=enp27s0:dhcp in web/configuration.nix:48 — hardcoded auf das alte
-  Grenade-Interface. Hat den Futro-Boot zwar nicht verhindert (initrd macht
-  eigenes DHCP), aber sollte trotzdem ip=dhcp werden um interface-agnostisch
-  zu sein.
-
-  23. CT_IP="172.20.90.51" im Kiosk-Script ist hardcoded, obwohl
-  common/network.nix als Abstraktion existiert (net.nodes.students.ip).
-  Sollte über pkgs.substituteAll oder per-TC-Image-Build aus network.nix
-  reingereicht werden.
-
-  24. image-grenade.nix ist totes File — wird in keinem Import referenziert.
-  Entweder als zweite Hardware-Variante echt einbinden (per-Hostname-Match
-  via PXE) oder löschen.
-
-  25. Auflösung "1920x1080@60" und nur erster wlr-randr-Output werden
-  hardcoded gewählt. Multi-Monitor (zweiter DP-Anschluss am Futro) wird
-  ignoriert. Bei abweichender Hardware bricht das.
-
-  Betrieb (neu, aus den heutigen Bugs gelernt)
-
-  26. PAM makeHomeDir setzt falsche Ownership beim Bind-Mount /home von
-  Host in Container — Verzeichnis gehört root:root statt user:users.
-  Folge: xauth-Timeout, "X server could not be started", User-Login
-  scheitert ohne klare Fehlermeldung. Heute manuell mit chown gefixt.
-  Lösung: oneshot-Service oder PAM-Hook im students-Container der vor dem
-  ersten Login das Home-Verzeichnis korrekt erstellt/anpasst.
-
-  27. CSV-Datenverlust: students.csv hat firstNames (Geburtsnamen, z.B.
-  "Goodluck Horst"), trade ("MB", "DSCT", "CJ") und entryDate. Davon
-  speichert lldap aktuell *nichts* — nur nickName landet als firstName.
-  Sollten in lldap als Custom-Attribute (birth_names, trade, entry_date)
-  ergänzt werden, sonst ist die CSV faktisch verlustbehaftet.
-
-  28. Kein "Shutdown"/"Cancel"-Button im zenity-Login-Dialog. Bei falscher
-  Eingabe 2s warten → wieder Login-Dialog. User kann den TC nicht sauber
-  herunterfahren ohne Stromstecker.
-
-  29. UEFI/BIOS-Dualität ist jetzt im Setup vorhanden (Futro=UEFI mit
-  ipxe.efi, Grenade=BIOS mit undionly.kpxe), aber der DHCP-Match auf hapax3
-  ist *per MAC* gemacht (lease-bound option-set). Skaliert nicht für 20 TCs.
-  Sollte stattdessen über DHCP Option 93 (Client Architecture) automatisch
-  switchen — UEFI-Clients bekommen ipxe.efi, BIOS-Clients undionly.kpxe.
-
+** TODO [#C] --impure in rebuild.sh
+Nötig für sops-Secrets. Jeder neue Mitwirkende fragt sich warum.
+Kommentar ergänzen oder saubere Lösung suchen.
