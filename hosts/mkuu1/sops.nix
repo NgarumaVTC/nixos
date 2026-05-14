@@ -25,36 +25,27 @@
       '';
     };
 
-    # SSSD-Konfiguration für Alpine hybridclient (wird in web01 bind-gemountet)
-    templates."hybridclient-sssd.conf" = {
+    # nslcd-Konfiguration für Alpine hybridclient (wird in web01 bind-gemountet)
+    # nss-pam-ldapd ist der Alpine-Ersatz für sssd (musl-kompatibel)
+    templates."hybridclient-nslcd.conf" = {
       mode = "0600";
       content = ''
-        [sssd]
-        config_file_version = 2
-        services = nss, pam
-        domains = lldap
+        uid nslcd
+        gid nslcd
 
-        [domain/lldap]
-        id_provider = ldap
-        auth_provider = ldap
-        ldap_uri = ldap://172.20.90.12:3890
-        ldap_search_base = dc=ngarumavtc,dc=lan
-        ldap_default_bind_dn = uid=admin,ou=people,dc=ngarumavtc,dc=lan
-        ldap_default_authtok_type = password
-        ldap_default_authtok = ${config.sops.placeholder.lldap_bind_password}
+        uri ldap://172.20.90.12:3890
+        base dc=ngarumavtc,dc=lan
+        binddn uid=admin,ou=people,dc=ngarumavtc,dc=lan
+        bindpw ${config.sops.placeholder.lldap_bind_password}
 
-        ldap_id_use_start_tls = False
-        ldap_tls_reqcert = never
-        ldap_auth_disable_tls_never_use_in_production = True
+        ssl off
+        tls_reqcert never
 
-        ldap_id_mapping = False
-        ldap_user_uid_number = uidnumber
-        ldap_user_gid_number = gidnumber
-
-        fallback_homedir = /home/%u
-        default_shell = /bin/sh
-
-        cache_credentials = true
+        map passwd uid              uid
+        map passwd uidNumber        uidNumber
+        map passwd gidNumber        gidNumber
+        map passwd homeDirectory    homeDirectory
+        map passwd loginShell       loginShell
       '';
     };
   };

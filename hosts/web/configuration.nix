@@ -4,7 +4,6 @@ let
   myConfig = net.nodes.web01;
   alpine   = import ../hybridclient/alpine-image.nix { inherit pkgs; };
 
-  # iPXE-Loader mit eingebettetem DHCP+chain-Script
   customIpxe = pkgs.ipxe.override {
     embedScript = pkgs.writeText "embed.ipxe" ''
       #!ipxe
@@ -14,68 +13,82 @@ let
   };
 in {
   containers.web01 = {
-    # sops-Template mit LDAP-Passwort in den Container reichen
-    bindMounts."/run/hybridclient-sssd.conf" = {
-      hostPath   = config.sops.templates."hybridclient-sssd.conf".path;
+    bindMounts."/run/hybridclient-nslcd.conf" = {
+      hostPath   = config.sops.templates."hybridclient-nslcd.conf".path;
       isReadOnly = true;
     };
 
     config = { config, pkgs, ... }: {
       networking.firewall.enable = false;
 
-      services.nginx.enable = true;
-      services.nginx.virtualHosts."web01" = {
-        root        = "/var/www/public";
-        extraConfig = "autoindex on;";
+      services.nginx = {
+        enable = true;
+        commonHttpConfig = ''
+          proxy_cache_path /var/cache/nginx/apk
+            levels=2
+            keys_zone=apk_cache:10m
+            inactive=90d
+            max_size=2g
+            use_temp_path=off;
+          resolver 1.1.1.1 valid=60s;
+        '';
+        virtualHosts."web01" = {
+          root        = "/var/www/public";
+          extraConfig = ''
+            autoindex on;
+            location /apks/ {
+              proxy_pass         https://dl-cdn.alpinelinux.org/alpine/v3.21/;
+              proxy_ssl_server_name on;
+              proxy_cache        apk_cache;
+              proxy_cache_valid  200 90d;
+              proxy_cache_use_stale error timeout updating;
+              proxy_cache_lock   on;
+            }
+          '';
+        };
       };
       services.atftpd = { enable = true; root = "/var/www/public"; };
-      systemd.tmpfiles.rules = [ "d /var/www/public 0755 nginx nginx -" ];
-      environment.systemPackages = [ pkgs.gzip ];
+      systemd.tmpfiles.rules = [ "d /var/www/public 0755 nginx nginx -" "d /var/cache/nginx/apk 0750 nginx nginx -" ];
 
       systemd.services.deploy-pxe = {
         description = "Deploy Alpine hybridclient PXE files";
         wantedBy    = [ "multi-user.target" ];
-        path = [ pkgs.gzip pkgs.coreutils pkgs.gnutar ];
+        path        = [ pkgs.gzip pkgs.coreutils pkgs.gnutar ];
         serviceConfig = {
           Type            = "oneshot";
           RemainAfterExit = true;
         };
         script = ''
-          # iPXE-Loader
           ln -sf ${customIpxe}/undionly.kpxe /var/www/public/undionly.kpxe
           ln -sf ${customIpxe}/ipxe.efi       /var/www/public/ipxe.efi
-
-          # Alpine Netboot-Kernel, initramfs, modloop (aus Nix-Store)
           ln -sf ${alpine.vmlinuz}   /var/www/public/vmlinuz-lts
           ln -sf ${alpine.initramfs} /var/www/public/initramfs-lts
           ln -sf ${alpine.modloop}   /var/www/public/modloop-lts
 
-          # apkovl zur Laufzeit bauen (braucht das sops-LDAP-Passwort)
           WORK=$(mktemp -d)
-          trap "${pkgs.coreutils}/bin/rm -rf $WORK" EXIT
+          trap "rm -rf $WORK" EXIT
 
-          ${pkgs.coreutils}/bin/mkdir -p \
+          mkdir -p \
             "$WORK"/etc/apk \
-            "$WORK"/etc/sssd \
+            "$WORK"/etc/nslcd \
             "$WORK"/etc/local.d \
             "$WORK"/etc/runlevels/boot \
             "$WORK"/etc/runlevels/default \
             "$WORK"/etc/skel/.local/share/remmina
 
-          # APK-Repositories (lokal auf web01)
+          # APK-Repositories
           printf 'http://${myConfig.ip}/apks/main\nhttp://${myConfig.ip}/apks/community\n' \
             > "$WORK"/etc/apk/repositories
 
-          # Paketliste — wird von Alpine beim Boot installiert
-          ${pkgs.coreutils}/bin/cat > "$WORK"/etc/apk/world << 'WORLD'
+          # Paketliste
+          cat > "$WORK"/etc/apk/world << 'WORLD'
 xfce4
 xfce4-terminal
 firefox-esr
 remmina
-remmina-plugin-rdp
 freerdp
-sssd
-sssd-ldap
+nss-pam-ldapd
+nss-pam-ldapd-openrc
 nfs-utils
 dbus
 elogind
@@ -85,19 +98,27 @@ lightdm-gtk-greeter
 ttf-dejavu
 WORLD
 
-          # SSSD-Config mit echtem LDAP-Passwort (aus sops-Template)
-          ${pkgs.coreutils}/bin/cp /run/hybridclient-sssd.conf "$WORK"/etc/sssd/sssd.conf
-          ${pkgs.coreutils}/bin/chmod 600 "$WORK"/etc/sssd/sssd.conf
+          # nslcd-Config mit echtem LDAP-Passwort (aus sops-Template)
+          cp /run/hybridclient-nslcd.conf "$WORK"/etc/nslcd/nslcd.conf
+          chmod 600 "$WORK"/etc/nslcd/nslcd.conf
+
+          # nsswitch.conf: LDAP für passwd/group/shadow aktivieren
+          cat > "$WORK"/etc/nsswitch.conf << 'NSW'
+passwd:   files ldap
+group:    files ldap
+shadow:   files ldap
+hosts:    files dns
+NSW
 
           # NFS-Home beim Login mounten
-          ${pkgs.coreutils}/bin/cat > "$WORK"/etc/local.d/nfs-home.start << 'NFS'
+          cat > "$WORK"/etc/local.d/nfs-home.start << 'NFS'
 #!/bin/sh
 mount -t nfs 172.20.0.10:/home /home -o rw,soft,intr,timeo=30
 NFS
-          ${pkgs.coreutils}/bin/chmod +x "$WORK"/etc/local.d/nfs-home.start
+          chmod +x "$WORK"/etc/local.d/nfs-home.start
 
-          # Remmina-Verbindung zum students-Container vorgespeichert
-          ${pkgs.coreutils}/bin/cat > "$WORK"/etc/skel/.local/share/remmina/kazilab.remmina << 'REMMINA'
+          # Remmina-Verbindung zum students-Container
+          cat > "$WORK"/etc/skel/.local/share/remmina/kazilab.remmina << 'REMMINA'
 [remmina]
 name=KaziLab Server
 protocol=RDP
@@ -107,18 +128,15 @@ width=1920
 height=1080
 REMMINA
 
-          # OpenRC-Services aktivieren
+          # OpenRC-Services
           ln -sf /etc/init.d/dbus    "$WORK"/etc/runlevels/boot/dbus
-          ln -sf /etc/init.d/sssd    "$WORK"/etc/runlevels/default/sssd
+          ln -sf /etc/init.d/nslcd   "$WORK"/etc/runlevels/default/nslcd
           ln -sf /etc/init.d/lightdm "$WORK"/etc/runlevels/default/lightdm
           ln -sf /etc/init.d/local   "$WORK"/etc/runlevels/default/local
 
-          # apkovl packen
-          ${pkgs.gnutar}/bin/tar czf /var/www/public/hybridclient.apkovl.tar.gz \
-            -C "$WORK" .
+          tar czf /var/www/public/hybridclient.apkovl.tar.gz -C "$WORK" .
 
-          # boot.ipxe für Alpine
-          ${pkgs.coreutils}/bin/cat > /var/www/public/boot.ipxe << 'IPXE'
+          cat > /var/www/public/boot.ipxe << 'IPXE'
 #!ipxe
 set base http://${myConfig.ip}
 kernel ''${base}/vmlinuz-lts ip=dhcp modloop=''${base}/modloop-lts alpine_repo=''${base}/apks/main apkovl=''${base}/hybridclient.apkovl.tar.gz quiet
@@ -126,7 +144,7 @@ initrd ''${base}/initramfs-lts
 boot
 IPXE
 
-          ${pkgs.coreutils}/bin/chown -R nginx:nginx /var/www/public
+          chown -R nginx:nginx /var/www/public
         '';
       };
     };

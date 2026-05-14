@@ -103,3 +103,8 @@ Add-Liste oder --impure ohne auto-staging.
 ** TODO [#C] --impure in rebuild.sh
 Nötig für sops-Secrets. Jeder neue Mitwirkende fragt sich warum.
 Kommentar ergänzen oder saubere Lösung suchen.
+
+** TODO [#C] tank/old aufräumen
+Altlasten aus der Umbenennung ngarumavtc1→mkuu1: =tank/old/containers=
+(27.5M), =tank/old/data/homes= (211M mit student10013-15). Nach
+Verifikation dass keine Daten fehlen: =zfs destroy -r tank/old=.
