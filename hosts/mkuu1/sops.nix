@@ -24,29 +24,5 @@
         LDAP_PASS=${config.sops.placeholder.lldap_bind_password}
       '';
     };
-
-    # nslcd-Konfiguration für Alpine hybridclient (wird in web01 bind-gemountet)
-    # nss-pam-ldapd ist der Alpine-Ersatz für sssd (musl-kompatibel)
-    templates."hybridclient-nslcd.conf" = {
-      mode = "0600";
-      content = ''
-        uid nslcd
-        gid nslcd
-
-        uri ldap://172.20.90.12:3890
-        base dc=ngarumavtc,dc=lan
-        binddn uid=admin,ou=people,dc=ngarumavtc,dc=lan
-        bindpw ${config.sops.placeholder.lldap_bind_password}
-
-        ssl off
-        tls_reqcert never
-
-        map passwd uid              uid
-        map passwd uidNumber        uidNumber
-        map passwd gidNumber        gidNumber
-        map passwd homeDirectory    "/home/$uid"
-        map passwd loginShell       "/bin/sh"
-      '';
-    };
   };
 }
