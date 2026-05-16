@@ -45,6 +45,10 @@
       id = 90;
     };
     bridges."br90".interfaces = [ "vlan90" ];
+    interfaces.br90.ipv4.addresses = [{
+      address = "172.20.90.10";
+      prefixLength = 24;
+    }];
   };
 
   # 3. ZFS Dateisysteme (Storage-Ebene)

@@ -1,10 +1,9 @@
 # NixOS Netboot Client — diskless mit NFS /nix/store + tmpfs root
-# Wird auf mkuu1 gebaut. Clients booten via PXE, mounten /nix/store per NFS.
 { config, pkgs, lib, ... }:
 let
   net = import ../../common/network.nix;
-  server = net.nodes.ngarumavtc1.ip;  # 172.20.0.10
-  authServer = net.nodes.ctauth.ip;    # 172.20.90.12
+  server = "172.20.90.10";
+  authServer = net.nodes.ctauth.ip;
 in {
   imports = [
     ./software.nix
@@ -15,31 +14,37 @@ in {
   # --- Boot (PXE, kein Bootloader) ---
   boot.loader.grub.enable = false;
   boot.initrd.supportedFilesystems = [ "nfs" ];
-  boot.initrd.kernelModules = [ "i915" "r8169" ];
-  boot.initrd.network.enable = true;
+  boot.initrd.systemd.contents."/etc/netconfig".source = "${pkgs.libtirpc}/etc/netconfig";
+  boot.initrd.kernelModules = [ "i915" "r8169" "nfs" "nfsv3" "lockd" "sunrpc" ];
   boot.kernelParams = [ "panic=10" "quiet" ];
 
+  # Netzwerk im initrd (systemd stage 1) — noetig fuer NFS-Mount vor switch_root
+  boot.initrd.systemd.network = {
+    enable = true;
+    networks."10-eth" = {
+      matchConfig.Type = "ether";
+      networkConfig.DHCP = "yes";
+    };
+  };
+
   # --- Dateisysteme ---
-  # Root: tmpfs (beschreibbar, fuer /etc /run /var etc.)
   fileSystems."/" = {
     device = "tmpfs";
     fsType = "tmpfs";
     options = [ "size=512M" "mode=0755" ];
   };
 
-  # Nix Store: NFS read-only (hier liegt das gesamte System)
   fileSystems."/nix/store" = {
     device = "${server}:/nix/store";
     fsType = "nfs";
-    options = [ "nfsvers=4" "ro" "nolock" ];
+    options = [ "nfsvers=3" "ro" "nolock" "addr=172.20.90.10" ];
     neededForBoot = true;
   };
 
-  # Home: NFS read-write
   fileSystems."/home" = {
     device = "${server}:/home";
     fsType = "nfs";
-    options = [ "nfsvers=4" "rw" "soft" "timeo=30" ];
+    options = [ "nfsvers=3" "rw" "soft" "timeo=30" "addr=172.20.90.10" ];
   };
 
   # --- Netzwerk ---
@@ -75,7 +80,6 @@ in {
 
       ldap_id_use_start_tls = False
       ldap_tls_reqcert = never
-      ldap_auth_disable_tls_never_use_in_production = True
 
       ldap_id_mapping = False
       ldap_user_uid_number = uidNumber
@@ -86,10 +90,8 @@ in {
     '';
   };
 
-  # Home-Verzeichnis beim ersten Login anlegen
   security.pam.services.login.makeHomeDir = true;
 
-  # PAM-Limits gegen Fork-Bombs
   security.pam.loginLimits = [
     { domain = "@users"; type = "hard"; item = "nproc"; value = "512"; }
     { domain = "@users"; type = "hard"; item = "nofile"; value = "2048"; }
