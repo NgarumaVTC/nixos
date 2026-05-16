@@ -70,7 +70,11 @@ in {
       domains = lldap
 
       [domain/lldap]
-      offline_timeout = 5
+      offline_timeout = 15
+      dns_resolver_timeout = 10
+      ldap_network_timeout = 10
+      ldap_opt_timeout = 15
+      reconnection_retries = 5
       id_provider = ldap
       auth_provider = ldap
       ldap_uri = ldap://${authServer}:3890
@@ -81,6 +85,7 @@ in {
 
       ldap_id_use_start_tls = False
       ldap_tls_reqcert = never
+      ldap_auth_disable_tls_never_use_in_production = True
 
       ldap_id_mapping = False
       ldap_user_uid_number = uidNumber
@@ -105,12 +110,17 @@ in {
 
   nix.enable = false;
 
-  # SSSD erst starten wenn Netzwerk online
+  # SSSD braucht /etc/resolv.conf — auf tmpfs-Root erst nach DHCP-Lease vorhanden.
+  # network-online.target allein reicht nicht: DHCP-Client schreibt resolv.conf u.U. erst danach.
   systemd.services.sssd = {
-    serviceConfig.ExecStartPre = "/bin/sh -c 'until echo > /dev/tcp/172.20.90.12/3890 2>/dev/null; do sleep 1; done'";
-
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
+    after = [ "network-online.target" "nss-lookup.target" ];
+    wants = [ "network-online.target" "nss-lookup.target" ];
+    serviceConfig = {
+      ExecStartPre = [
+        "${pkgs.bash}/bin/sh -c 'until [ -s /etc/resolv.conf ]; do sleep 1; done'"
+      ];
+      TimeoutStartSec = "120s";
+    };
   };
   services.openssh = {
     enable = true;
