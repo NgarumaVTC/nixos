@@ -17,6 +17,9 @@ in {
   boot.initrd.systemd.contents."/etc/netconfig".source = "${pkgs.libtirpc}/etc/netconfig";
   boot.initrd.kernelModules = [ "i915" "r8169" "nfs" "nfsv3" "lockd" "sunrpc" ];
   boot.kernelParams = [ "panic=10" "quiet" ];
+  boot.blacklistedKernelModules = [ "tpm" "tpm_tis" "tpm_crb" ];
+  hardware.cpu.intel.updateMicrocode = true;
+  hardware.enableRedistributableFirmware = true;
 
   # Netzwerk im initrd (systemd stage 1) — noetig fuer NFS-Mount vor switch_root
   boot.initrd.systemd.network = {
@@ -50,7 +53,12 @@ in {
   # --- Netzwerk ---
   networking = {
     useDHCP = true;
+    useNetworkd = true;   # statt dhcpcd: spart zweiten DHCP-Cycle nach initrd
     hostName = "";
+  };
+  systemd.network.networks."10-eth" = {
+    matchConfig.Type = "ether";
+    networkConfig.DHCP = "yes";
   };
 
   # --- Desktop ---
@@ -99,8 +107,8 @@ in {
   security.pam.services.login.makeHomeDir = true;
 
   security.pam.loginLimits = [
-    { domain = "@users"; type = "hard"; item = "nproc"; value = "512"; }
-    { domain = "@users"; type = "hard"; item = "nofile"; value = "2048"; }
+    { domain = "@users"; type = "hard"; item = "nproc"; value = "16384"; }
+    { domain = "@users"; type = "hard"; item = "nofile"; value = "65536"; }
   ];
 
   # --- System ---

@@ -3,10 +3,11 @@
 {
   environment.systemPackages = with pkgs; [
     # Browser & Medien
-    firefox
+    firefox-esr
     chromium
     vlc
     evince
+    remmina
 
     # Office
     libreoffice
