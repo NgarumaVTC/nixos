@@ -70,6 +70,7 @@ in {
       domains = lldap
 
       [domain/lldap]
+      offline_timeout = 5
       id_provider = ldap
       auth_provider = ldap
       ldap_uri = ldap://${authServer}:3890
@@ -104,6 +105,13 @@ in {
 
   nix.enable = false;
 
+  # SSSD erst starten wenn Netzwerk online
+  systemd.services.sssd = {
+    serviceConfig.ExecStartPre = "/bin/sh -c 'until echo > /dev/tcp/172.20.90.12/3890 2>/dev/null; do sleep 1; done'";
+
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+  };
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "prohibit-password";

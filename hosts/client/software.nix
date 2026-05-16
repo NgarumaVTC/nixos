@@ -4,6 +4,7 @@
   environment.systemPackages = with pkgs; [
     # Browser & Medien
     firefox
+    chromium
     vlc
     evince
 
@@ -36,6 +37,8 @@
   ];
 
   # Hardware-Video-Beschleunigung (Intel GPUs ab ~2010)
+  # Firefox Sandbox-Level reduzieren (Default 4 crasht auf NFS-Root)
+  environment.variables.MOZ_SANDBOX_LEVEL = "2";
   hardware.graphics.enable = true;
   environment.sessionVariables.LIBVA_DRIVER_NAME = "i965";
 }

@@ -71,6 +71,6 @@
   users.users.ramge.extraGroups = [ "zfs" ];
 
   environment.systemPackages = with pkgs; [
-    bridge-utils pciutils
+    bridge-utils claude-code pciutils
   ];
 }

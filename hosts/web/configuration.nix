@@ -4,7 +4,7 @@ let
   myConfig = net.nodes.web01;
 
   # Pfad zum gebauten Client-System — nach jedem Rebuild aktualisieren
-  clientSystem = "/nix/store/7ahc46gpbg5lhqdakhkfzf06ir40arxd-nixos-system-unnamed-26.05.20260430.15f4ee4";
+  clientSystem = "/nix/store/b3p6wrr1qh5mala7dv2yqydf0118qhkr-nixos-system-unnamed-26.05.20260430.15f4ee4";
 
   customIpxe = pkgs.ipxe.override {
     embedScript = pkgs.writeText "embed.ipxe" ''
