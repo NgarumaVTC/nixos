@@ -53,12 +53,7 @@ in {
   # --- Netzwerk ---
   networking = {
     useDHCP = true;
-    useNetworkd = true;   # statt dhcpcd: spart zweiten DHCP-Cycle nach initrd
     hostName = "";
-  };
-  systemd.network.networks."10-eth" = {
-    matchConfig.Type = "ether";
-    networkConfig.DHCP = "yes";
   };
 
   # --- Desktop ---

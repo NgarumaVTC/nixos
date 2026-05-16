@@ -4,7 +4,7 @@ let
   myConfig = net.nodes.web01;
 
   # Pfad zum gebauten Client-System — nach jedem Rebuild aktualisieren
-  clientSystem = "/nix/store/lm3sb7qiqhn5qd325q5zjic0226rqygl-nixos-system-unnamed-26.05.20260430.15f4ee4";
+  clientSystem = "/nix/store/21n5rv9530jld841rgwbmkfvz0sr8bbd-nixos-system-unnamed-26.05.20260430.15f4ee4";
 
   customIpxe = pkgs.ipxe.override {
     embedScript = pkgs.writeText "embed.ipxe" ''
@@ -14,9 +14,13 @@ let
     '';
   };
 
+  # Intel-Microcode als separates initrd-Segment (iPXE konkateniert beide).
+  # Reihenfolge wichtig: microcode MUSS vor dem Haupt-initrd kommen, damit der
+  # Kernel den early-microcode-Header findet.
   bootScript = pkgs.writeText "boot.ipxe" ''
     #!ipxe
     kernel http://${myConfig.ip}/vmlinuz init=${clientSystem}/init ip=dhcp quiet
+    initrd http://${myConfig.ip}/microcode.img
     initrd http://${myConfig.ip}/initrd
     boot
   '';
@@ -53,6 +57,7 @@ in {
           ln -sf ${customIpxe}/ipxe.efi       /var/www/public/ipxe.efi
           ln -sf ${clientSystem}/kernel /var/www/public/vmlinuz
           ln -sf ${clientSystem}/initrd /var/www/public/initrd
+          ln -sf ${pkgs.microcode-intel}/intel-ucode.img /var/www/public/microcode.img
           ln -sf ${bootScript}          /var/www/public/boot.ipxe
           chown -R nginx:nginx /var/www/public
         '';
