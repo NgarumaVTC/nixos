@@ -54,28 +54,16 @@
     "/media/ClassMaterial"      = { device = "tank/data/lehrpult"; fsType = "zfs"; };
   };
 
-  # 4. NFS-Exports
+  # 4. NFS-Exports: /nix/store (Client-Root) + /home (User-Daten)
   services.nfs.server = {
     enable = true;
     exports = ''
-      /home               172.20.90.0/24(rw,sync,no_subtree_check,no_root_squash)
-      /export/nixos-client 172.20.90.0/24(ro,sync,no_subtree_check,no_root_squash,crossmnt)
+      /nix/store  172.20.90.0/24(ro,sync,no_subtree_check,no_root_squash)
+      /home       172.20.90.0/24(rw,sync,no_subtree_check,no_root_squash)
     '';
   };
 
-  # 5. NFS-Root fuer diskless Clients: /nix/store als bind-mount exportieren
-  fileSystems."/export/nixos-client/nix/store" = {
-    device = "/nix/store";
-    fsType = "none";
-    options = [ "bind" "ro" ];
-  };
-  systemd.tmpfiles.rules = [
-    "d /export/nixos-client 0755 root root -"
-    "d /export/nixos-client/nix 0755 root root -"
-    "d /export/nixos-client/nix/store 0755 root root -"
-  ];
-
-  # 6. Host-spezifische Erweiterungen
+  # 5. Host-spezifische Erweiterungen
   users.users.ramge.extraGroups = [ "zfs" ];
 
   environment.systemPackages = with pkgs; [

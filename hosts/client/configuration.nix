@@ -1,5 +1,5 @@
-# NixOS Netboot Client — diskless mit NFS-Root
-# Wird auf mkuu1 gebaut, Root-Filesystem per NFS exportiert.
+# NixOS Netboot Client — diskless mit NFS /nix/store + tmpfs root
+# Wird auf mkuu1 gebaut. Clients booten via PXE, mounten /nix/store per NFS.
 { config, pkgs, lib, ... }:
 let
   net = import ../../common/network.nix;
@@ -12,49 +12,48 @@ in {
 
   system.stateVersion = "26.05";
 
-  # --- Boot (kein Bootloader, PXE uebernimmt) ---
+  # --- Boot (PXE, kein Bootloader) ---
   boot.loader.grub.enable = false;
   boot.initrd.supportedFilesystems = [ "nfs" ];
   boot.initrd.kernelModules = [ "i915" "r8169" ];
-  boot.initrd.network = {
-    enable = true;
-  };
+  boot.initrd.network.enable = true;
   boot.kernelParams = [ "panic=10" "quiet" ];
 
-  # --- Dateisysteme: NFS-Root + tmpfs fuer mutable State ---
+  # --- Dateisysteme ---
+  # Root: tmpfs (beschreibbar, fuer /etc /run /var etc.)
   fileSystems."/" = {
-    device = "${server}:/export/nixos-client";
+    device = "tmpfs";
+    fsType = "tmpfs";
+    options = [ "size=512M" "mode=0755" ];
+  };
+
+  # Nix Store: NFS read-only (hier liegt das gesamte System)
+  fileSystems."/nix/store" = {
+    device = "${server}:/nix/store";
     fsType = "nfs";
     options = [ "nfsvers=4" "ro" "nolock" ];
+    neededForBoot = true;
   };
+
+  # Home: NFS read-write
   fileSystems."/home" = {
     device = "${server}:/home";
     fsType = "nfs";
     options = [ "nfsvers=4" "rw" "soft" "timeo=30" ];
   };
-  fileSystems."/tmp" = {
-    device = "tmpfs";
-    fsType = "tmpfs";
-    options = [ "size=512M" "mode=1777" ];
-  };
-  fileSystems."/var" = {
-    device = "tmpfs";
-    fsType = "tmpfs";
-    options = [ "size=256M" "mode=0755" ];
-  };
 
   # --- Netzwerk ---
   networking = {
     useDHCP = true;
-    hostName = "";  # wird per DHCP gesetzt
+    hostName = "";
   };
 
   # --- Desktop ---
   services.xserver = {
     enable = true;
     desktopManager.xfce.enable = true;
+    xkb.layout = "de";
   };
-
 
   # --- LDAP-Auth via sssd ---
   services.sssd = {
@@ -88,7 +87,7 @@ in {
   };
 
   # Home-Verzeichnis beim ersten Login anlegen
-  security.pam.services.lightdm.makeHomeDir = true;
+  security.pam.services.login.makeHomeDir = true;
 
   # PAM-Limits gegen Fork-Bombs
   security.pam.loginLimits = [
@@ -96,16 +95,13 @@ in {
     { domain = "@users"; type = "hard"; item = "nofile"; value = "2048"; }
   ];
 
-  # --- Lokale Dienste ---
+  # --- System ---
   time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "de";
-  services.xserver.xkb.layout = "de";
 
-  # Kein Nix auf dem Client noetig
   nix.enable = false;
 
-  # SSH fuer Remote-Wartung
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "prohibit-password";

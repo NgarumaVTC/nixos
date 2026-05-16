@@ -2,10 +2,9 @@
 let
   net      = import ../../common/network.nix;
   myConfig = net.nodes.web01;
-  server   = net.nodes.ngarumavtc1.ip;
 
   # Pfad zum gebauten Client-System — nach jedem Rebuild aktualisieren
-  clientSystem = "/nix/store/6jp5s5wx5ajc5f2jf8b0v3x8k2xch9ik-nixos-system-unnamed-26.05.20260430.15f4ee4";
+  clientSystem = "/nix/store/7c4fa8r7wbcnh1vwf8lq1pf4290i4awf-nixos-system-unnamed-26.05.20260430.15f4ee4";
 
   customIpxe = pkgs.ipxe.override {
     embedScript = pkgs.writeText "embed.ipxe" ''
@@ -17,7 +16,7 @@ let
 
   bootScript = pkgs.writeText "boot.ipxe" ''
     #!ipxe
-    kernel http://${myConfig.ip}/vmlinuz init=${clientSystem}/init ip=dhcp root=/dev/nfs nfsroot=${server}:/export/nixos-client,nfsvers=4,ro quiet
+    kernel http://${myConfig.ip}/vmlinuz init=${clientSystem}/init ip=dhcp quiet
     initrd http://${myConfig.ip}/initrd
     boot
   '';
