@@ -54,18 +54,31 @@
     "/media/ClassMaterial"      = { device = "tank/data/lehrpult"; fsType = "zfs"; };
   };
 
-  # 4. NFS-Export: Home-Verzeichnisse für hybridclient
+  # 4. NFS-Exports
   services.nfs.server = {
     enable = true;
     exports = ''
-      /home  172.20.90.0/24(rw,sync,no_subtree_check,no_root_squash)
+      /home               172.20.90.0/24(rw,sync,no_subtree_check,no_root_squash)
+      /export/nixos-client 172.20.90.0/24(ro,sync,no_subtree_check,no_root_squash,crossmnt)
     '';
   };
 
-  # 5. Host-spezifische Erweiterungen
-  users.users.ramge.extraGroups = [ "zfs" ]; # Erweitert den User aus common/default.nix
+  # 5. NFS-Root fuer diskless Clients: /nix/store als bind-mount exportieren
+  fileSystems."/export/nixos-client/nix/store" = {
+    device = "/nix/store";
+    fsType = "none";
+    options = [ "bind" "ro" ];
+  };
+  systemd.tmpfiles.rules = [
+    "d /export/nixos-client 0755 root root -"
+    "d /export/nixos-client/nix 0755 root root -"
+    "d /export/nixos-client/nix/store 0755 root root -"
+  ];
+
+  # 6. Host-spezifische Erweiterungen
+  users.users.ramge.extraGroups = [ "zfs" ];
 
   environment.systemPackages = with pkgs; [
-    bridge-utils pciutils # Wird zu den Paketen aus common/default.nix hinzugefügt
+    bridge-utils pciutils
   ];
 }
