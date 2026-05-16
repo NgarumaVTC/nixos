@@ -16,5 +16,12 @@
         ./hosts/mkuu1/configuration.nix
       ];
     };
+
+    nixosConfigurations.client = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./hosts/client/configuration.nix
+      ];
+    };
   };
 }
