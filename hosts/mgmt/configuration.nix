@@ -91,6 +91,14 @@
           ldap_user_uid_number = uidnumber
           ldap_user_gid_number = gidnumber
 
+          # lldap nutzt groupOfNames (RFC2307bis), nicht das SSSD-Default posixGroup.
+          # Ohne diese Anpassung werden Gruppen nicht als POSIX-Gruppen erkannt,
+          # und chgrp/getent group findet sie nicht.
+          ldap_group_object_class = groupOfNames
+          ldap_group_name = cn
+          ldap_group_gid_number = gidnumber
+          ldap_group_member = member
+
           fallback_homedir = /home/%u
           default_shell = /run/current-system/sw/bin/bash
         '';

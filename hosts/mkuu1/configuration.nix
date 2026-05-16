@@ -70,6 +70,12 @@
   # 5. Host-spezifische Erweiterungen
   users.users.ramge.extraGroups = [ "zfs" ];
 
+  # /media/ClassMaterial gehoert der lldap_teacher-Gruppe (gid 4002).
+  # Setgid-Bit (2) sorgt dafuer dass neue Files die Group erben.
+  systemd.tmpfiles.rules = [
+    "d /media/ClassMaterial 2775 root 4002 -"
+  ];
+
   environment.systemPackages = with pkgs; [
     bridge-utils claude-code pciutils
   ];
