@@ -72,7 +72,7 @@ in {
       ldap_search_base = dc=ngarumavtc,dc=lan
       ldap_default_bind_dn = uid=readonly,ou=people,dc=ngarumavtc,dc=lan
       ldap_default_authtok_type = password
-      ldap_default_authtok = PLACEHOLDER_WIRD_DURCH_SOPS_ERSETZT
+      ldap_default_authtok = XTV8riqKZwwOFYnPBhNjcuSxnx7wAV6a
 
       ldap_id_use_start_tls = False
       ldap_tls_reqcert = never
