@@ -24,6 +24,7 @@
     supportedFilesystems = [ "zfs" ];
     zfs.forceImportRoot = false;
     zfs.devNodes = "/dev/disk/by-partlabel";
+    zfs.extraPools = [ "homes" ];
   };
 
   # 2. Netzwerk (Routing & Bridge)
