@@ -7,7 +7,8 @@ LDAP_URL="ldap://172.20.90.12:3890"
 LDAP_DN="dc=ngarumavtc,dc=lan"
 LDAP_ADMIN="uid=admin,ou=people,${LDAP_DN}"
 GID=100
-ZFS_BASE="tank/data/homes"
+ZFS_BASE="homes"
+STUDENT_GROUP_ID=4
 CSV="$(dirname "$(realpath "$0")")/students.csv"
 
 TOKEN=$(curl -sf "${LLDAP}/auth/simple/login" \
@@ -59,6 +60,16 @@ while IFS=, read -r id nickname firstNames lastName sex trade entryDate; do
     echo "  Posix-Attribute: OK"
   else
     echo "  Posix-Attribute WARNUNG: $ATTR_RESP" >&2
+  fi
+
+  # Gruppen-Zuordnung lldap_student
+  GROUP_RESP=$(gql "{\"query\":\"mutation{addUserToGroup(userId:\\\"${username}\\\",groupId:${STUDENT_GROUP_ID}){ok}}\"}")
+  if echo "$GROUP_RESP" | grep -q '"ok":true'; then
+    echo "  Gruppe lldap_student: OK"
+  elif echo "$GROUP_RESP" | grep -qi 'already'; then
+    echo "  Gruppe lldap_student: bereits Mitglied"
+  else
+    echo "  Gruppe WARNUNG: $GROUP_RESP" >&2
   fi
 
   LDAPPASSWD_USERS+=("$username")
