@@ -98,7 +98,7 @@ Als lldap Custom-Attribute ergänzen.
 User kann den TC nicht sauber herunterfahren. XFCE4 hat einen
 Logout-Dialog — sicherstellen dass er erreichbar ist und nicht geblockt.
 
-** TODO [#B] EFI-Partitionen werden nicht automatisch synchronisiert
+** DONE [#B] EFI-Partitionen werden nicht automatisch synchronisiert
 Nach jedem nixos-rebuild ist nur sdb1 (SN602891-EFI) aktuell; sda1 und sdc1
 bleiben veraltet. Lösung: systemd path-Unit die auf Änderungen in
 /boot/loader/loader.conf reagiert und dann rsync auf die anderen beiden
