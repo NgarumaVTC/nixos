@@ -71,11 +71,9 @@ einbinden (per-MAC-Match via PXE) oder löschen.
 
 * Betrieb
 
-** TODO [#A] PAM makeHomeDir: falsche Ownership
-makeHomeDir setzt =root:root= statt =user:users= beim Bind-Mount /home.
-Folge: xauth-Timeout, Login scheitert ohne klare Fehlermeldung.
-Heute manuell mit chown gefixt. Lösung: oneshot-Service im
-students-Container der vor dem ersten Login das Home korrekt anlegt.
+** DONE [#A] PAM makeHomeDir: falsche Ownership
+Gelöst durch Migration auf diskless NFS-Clients: Homes liegen auf
+ZFS-Datasets (homes-Pool) mit korrekter Ownership, NFS-Mount mit crossmnt.
 
 ** TODO [#B] Kein Backup-Konzept
 ZFS gibt Snapshots + zfs-send/recv für lau. =services.sanoid= ist ein
@@ -117,10 +115,8 @@ Add-Liste oder --impure ohne auto-staging.
 Nötig für sops-Secrets. Jeder neue Mitwirkende fragt sich warum.
 Kommentar ergänzen oder saubere Lösung suchen.
 
-** TODO [#C] tank/old aufräumen
-Altlasten aus der Umbenennung ngarumavtc1→mkuu1: =tank/old/containers=
-(27.5M), =tank/old/data/homes= (211M mit student10013-15). Nach
-Verifikation dass keine Daten fehlen: =zfs destroy -r tank/old=.
+** DONE [#C] tank/old aufräumen
+tank-Pool existiert nicht mehr — wurde durch zroot ersetzt (disko-Neuaufbau).
 
 ** DONE [#B] Schüler-Homes auf eigenen Pool migrieren
 Von NVMe (homes-Pool, Lexar 2TB) auf Samsung 870 EVO 250GB (sdd) per
@@ -131,9 +127,23 @@ homes.img liegt noch auf /home/ramge als Backup — nach Verifikation löschen.
 Aktuell: single disk (870 EVO 250GB). Ziel: 2× 2TB Consumer-SSD Mirror.
 Wenn zweite SSD da: =zpool attach homes <neue-disk>=.
 
-** TODO [#A] Neuaufbau mkuu1: md/LVM/ext4 → ZFS root on disko
-Blaupause: hosts/mkuu1/disko.nix (3-way mirror zroot + homes-Pool).
-Ziel-Datasets zroot: root, nix, home (VIPs), containers, classmaterial.
-Schüler-Homes bleiben auf separatem homes-Pool.
-Vorbedingung: SSH host key sichern (= sops age key!), dann
-nixos-install mit disko --mode destroy,format,mount.
+** DONE [#A] Neuaufbau mkuu1: md/LVM/ext4 → ZFS root on disko
+Erledigt 2026-05-17. zroot 2-way mirror (sda+sdb), homes auf 870 EVO.
+Backup-Disk (sdc) liegt bereit für =zpool attach zroot=.
+
+** TODO [#B] Backup-Disk (sdc) als 3. Mirror in zroot einbauen
+Nach Verifikation dass alles stabil läuft: physisch einbauen, dann
+=zpool attach zroot /dev/disk/by-id/ata-SAMSUNG_..._S47MNE0M601569-part2=.
+Danach disko.nix + efi-sync.esps um sdc ergänzen.
+
+** TODO [#B] /staff als ZFS-Dataset statt Verzeichnis auf zroot/root
+Aktuell: =/staff= als normales Verzeichnis auf zroot/root (nach DR-Restore).
+Besser: eigenes Dataset =zroot/staff= für Snapshots und einfachere Verwaltung.
+
+** DONE [#B] lldap.env via sops-Template automatisch erstellen
+=/var/lib/secrets/lldap.env= wird jetzt als sops-Template generiert.
+Kein manuelles Anlegen nach Neuinstallation mehr nötig.
+
+** DONE [#B] NFS crossmnt für Student-Homes
+homes-Pool-Datasets (homes/student*) waren via NFS nicht sichtbar weil
+=/home= ohne =crossmnt= exportiert wurde. Gefixt in configuration.nix.
