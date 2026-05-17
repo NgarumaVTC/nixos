@@ -78,6 +78,8 @@
   ];
 
   environment.systemPackages = with pkgs; [
-    bridge-utils claude-code pciutils
+    bridge-utils claude-code
+    pciutils usbutils dmidecode smartmontools ethtool
+    tcpdump nmap mtr
   ];
 }

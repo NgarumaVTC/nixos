@@ -17,6 +17,13 @@ tc90151 und tc01 sind definiert, die anderen 18 fehlen (MAC noch
 unbekannt). Bessere Datenstruktur: =map (i: { ip = "172.20.90.${i}"; ...})
 (range 151 170)= statt Einzeleinträge.
 
+** TODO [#C] hosts/-Verzeichnisse an Container-Namen angleichen
+=hosts/auth/= → =hosts/ctauth/=, =hosts/mgmt/= → =hosts/mgmt1/=,
+=hosts/web/= → =hosts/web01/=. (=students= passt schon.) Container-Namen
+sind in =machinectl=, Unit-Namen und Logs sichtbar; die Pfade im Flake
+sollten dem folgen, damit man beim Debuggen nicht jedes Mal übersetzen
+muss.
+
 * Sicherheit
 
 ** TODO [#A] JWT-Secret ist Klartext "NgarumaVTC"
