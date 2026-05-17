@@ -66,42 +66,15 @@
         };
       };
 
-      sdc = {
-        type   = "disk";
-        device = "/dev/disk/by-id/ata-SAMSUNG_MZ7KH480HAHQ-00005_S47MNE0M601569";
-        content = {
-          type = "gpt";
-          partitions = {
-            ESP = {
-              size    = "1G";
-              type    = "EF00";
-              content = {
-                type   = "filesystem";
-                format = "vfat";
-                # kein Mountpoint — wird von efi-sync.nix gespiegelt
-              };
-            };
-            zfs = {
-              size    = "100%";
-              content = { type = "zfs"; pool = "zroot"; };
-            };
-          };
-        };
-      };
+      # sdc (S47MNE0M601569) ist als Backup-Disk ausgebaut.
+      # Nach Verifikation: zpool attach zroot <sdc-id-zfs-part> und
+      # diese Sektion wieder aktivieren + efi-sync.esps ergänzen.
 
-      sdd = {
-        type   = "disk";
-        device = "/dev/disk/by-id/ata-Samsung_SSD_870_EVO_250GB_S6PENJ0RB38470R";
-        content = {
-          type = "gpt";
-          partitions = {
-            zfs = {
-              size    = "100%";
-              content = { type = "zfs"; pool = "homes"; };
-            };
-          };
-        };
-      };
+      # sdd (Samsung 870 EVO) wird NICHT von disko verwaltet —
+      # homes-Pool existiert bereits mit Schüler-Daten.
+      # Nur hier dokumentiert:
+      #   device = "/dev/disk/by-id/ata-Samsung_SSD_870_EVO_250GB_S6PENJ0RB38470R"
+      #   Pool "homes", importiert via boot.zfs.extraPools
 
     };
 
@@ -148,23 +121,6 @@
             options.mountpoint = "legacy";
           };
         };
-      };
-
-      homes = {
-        type = "zpool";
-        # Jetzt: single disk (sdd, 870 EVO 250G) — kein Mirror
-        # Später: zpool attach homes <neue-2TB-SSD> für Mirror-Ausbau
-        rootFsOptions = {
-          compression = "zstd";
-          acltype     = "posixacl";
-          xattr       = "sa";
-          atime       = "off";
-        };
-        options.ashift = "12";
-
-        # Keine Datasets hier — werden per Script/manuell
-        # pro Schüler angelegt: zfs create -o quota=10G homes/studentXXXX
-        datasets = {};
       };
 
     };

@@ -22,9 +22,7 @@
       efi.canTouchEfiVariables = true;
     };
     supportedFilesystems = [ "zfs" ];
-    zfs.forceImportRoot = false;
-    zfs.devNodes = "/dev/disk/by-partlabel";
-    zfs.extraPools = [ "homes" ];
+    zfs.extraPools = [ "homes" ];   # Schüler-Homes auf separatem Pool (sdd)
   };
 
   # 2. Netzwerk (Routing & Bridge)
@@ -54,11 +52,13 @@
     }];
   };
 
-  # 3. ZFS Dateisysteme (Storage-Ebene)
+  # 3. ZFS Dateisysteme — alle Datasets aus zroot (disko.nix)
   fileSystems = {
-    "/var/lib/nixos-containers" = { device = "tank/containers";  fsType = "zfs"; };
-    "/home"                     = { device = "tank/data/homes";    fsType = "zfs"; };
-    "/media/ClassMaterial"      = { device = "tank/data/lehrpult"; fsType = "zfs"; };
+    "/"                         = { device = "zroot/root";         fsType = "zfs"; };
+    "/nix"                      = { device = "zroot/nix";          fsType = "zfs"; };
+    "/home"                     = { device = "zroot/home";         fsType = "zfs"; };
+    "/var/lib/nixos-containers" = { device = "zroot/containers";   fsType = "zfs"; };
+    "/media/ClassMaterial"      = { device = "zroot/classmaterial"; fsType = "zfs"; };
   };
 
   # 4. NFS-Exports: /nix/store (Client-Root) + /home (User-Daten)
