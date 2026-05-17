@@ -22,6 +22,7 @@
       efi.canTouchEfiVariables = true;
     };
     supportedFilesystems = [ "zfs" ];
+    zfs.forceImportAll = true;      # homes-Pool hatte fremden hostid nach Installer-Import
     zfs.extraPools = [ "homes" ];   # Schüler-Homes auf separatem Pool (sdd)
   };
 
