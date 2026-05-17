@@ -122,10 +122,18 @@ Altlasten aus der Umbenennung ngarumavtc1→mkuu1: =tank/old/containers=
 (27.5M), =tank/old/data/homes= (211M mit student10013-15). Nach
 Verifikation dass keine Daten fehlen: =zfs destroy -r tank/old=.
 
-** TODO [#B] ZFS Home-Datasets auf tank/data/homes migrieren
-Student-Homes liegen noch auf tank/old/data/homes/ (gemountet unter
-/home/studentXXXX). Diese auf tank/data/homes migrieren, z.B. per
-=zfs send/recv= oder =zfs rename=. Danach tank/old aufräumen.
-Betrifft: student10013, student10014, student10015.
-Hängt zusammen mit: lldap liefert kein homeDirectory-Attribut —
-nslcd mappt aktuell hart auf "/home/$uid".
+** DONE [#B] Schüler-Homes auf eigenen Pool migrieren
+Von NVMe (homes-Pool, Lexar 2TB) auf Samsung 870 EVO 250GB (sdd) per
+=zfs send -R homes@migrate | zfs recv homes_new=. NVMe ausgebaut.
+homes.img liegt noch auf /home/ramge als Backup — nach Verifikation löschen.
+
+** TODO [#B] homes-Pool auf Mirror erweitern
+Aktuell: single disk (870 EVO 250GB). Ziel: 2× 2TB Consumer-SSD Mirror.
+Wenn zweite SSD da: =zpool attach homes <neue-disk>=.
+
+** TODO [#A] Neuaufbau mkuu1: md/LVM/ext4 → ZFS root on disko
+Blaupause: hosts/mkuu1/disko.nix (3-way mirror zroot + homes-Pool).
+Ziel-Datasets zroot: root, nix, home (VIPs), containers, classmaterial.
+Schüler-Homes bleiben auf separatem homes-Pool.
+Vorbedingung: SSH host key sichern (= sops age key!), dann
+nixos-install mit disko --mode destroy,format,mount.
