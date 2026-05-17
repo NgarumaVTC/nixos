@@ -24,5 +24,15 @@
         LDAP_PASS=${config.sops.placeholder.lldap_bind_password}
       '';
     };
+
+    # lldap-Container: JWT-Secret + Admin-Passwort via Bind-Mount
+    templates."lldap.env" = {
+      path = "/var/lib/secrets/lldap.env";
+      mode = "0600";
+      content = ''
+        LLDAP_JWT_SECRET=${config.sops.placeholder.lldap_bind_password}
+        LLDAP_LDAP_USER_PASS=${config.sops.placeholder.lldap_bind_password}
+      '';
+    };
   };
 }

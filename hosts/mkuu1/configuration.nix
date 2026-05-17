@@ -67,7 +67,7 @@
     enable = true;
     exports = ''
       /nix/store  172.20.90.0/24(ro,sync,no_subtree_check,no_root_squash)
-      /home       172.20.90.0/24(rw,sync,no_subtree_check,no_root_squash)
+      /home       172.20.90.0/24(rw,sync,no_subtree_check,no_root_squash,crossmnt)
     '';
   };
 
