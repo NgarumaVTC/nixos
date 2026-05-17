@@ -62,17 +62,20 @@ in
         RemainAfterExit = false;
       };
       script =
-        let rsync = "${pkgs.rsync}/bin/rsync";
+        let
+          rsync = "${pkgs.rsync}/bin/rsync";
+          mount = "${pkgs.util-linux}/bin/mount";
+          umount = "${pkgs.util-linux}/bin/umount";
         in ''
           set -euo pipefail
           tmpdir=$(mktemp -d)
-          trap 'umount "$tmpdir" 2>/dev/null || true; rmdir "$tmpdir"' EXIT
+          trap '${umount} "$tmpdir" 2>/dev/null || true; rmdir "$tmpdir"' EXIT
 
           ${lib.concatMapStringsSep "\n" (dev: ''
             echo "efi-sync: /boot → ${dev}"
-            mount ${dev} "$tmpdir"
+            ${mount} ${dev} "$tmpdir"
             ${rsync} -a --delete /boot/ "$tmpdir/"
-            umount "$tmpdir"
+            ${umount} "$tmpdir"
           '') targets}
         '';
     };
