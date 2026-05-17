@@ -98,6 +98,12 @@ Als lldap Custom-Attribute ergänzen.
 User kann den TC nicht sauber herunterfahren. XFCE4 hat einen
 Logout-Dialog — sicherstellen dass er erreichbar ist und nicht geblockt.
 
+** TODO [#B] EFI-Partitionen werden nicht automatisch synchronisiert
+Nach jedem nixos-rebuild ist nur sdb1 (SN602891-EFI) aktuell; sda1 und sdc1
+bleiben veraltet. Lösung: systemd path-Unit die auf Änderungen in
+/boot/loader/loader.conf reagiert und dann rsync auf die anderen beiden
+ESP-Partitionen ausführt.
+
 ** TODO [#C] UEFI/BIOS-Dualität skaliert nicht
 DHCP-Match auf hapax3 ist per-MAC (lease-bound option-set). Skaliert
 nicht für 20 TCs. Besser: DHCP Option 93 (Client Architecture) —

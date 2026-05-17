@@ -3,6 +3,7 @@
 {
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
+    ../../common/efi-sync.nix
   ];
 
   # nvme bewusst nicht im initrd — mkuu1 bootet von SATA/md0
@@ -51,6 +52,15 @@
       ${zfs}/bin/zpool import -d /dev/disk/by-partlabel -N 14376766170460333860
     fi
   '';
+
+  services.efiSync = {
+    enable = true;
+    esps = [
+      "/dev/disk/by-partlabel/SN602891-EFI"  # = /boot (sdb1) → Quelle
+      "/dev/disk/by-partlabel/SN602439-EFI"  # sda1 → Target
+      "/dev/disk/by-partlabel/SN601569-EFI"  # sdc1 → Target
+    ];
+  };
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
